@@ -76,6 +76,7 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 .block .bh{display:flex;justify-content:space-between;align-items:center;font:700 13px "HIT Simpler Bold","Heebo"}
 .block .bh .tag{font:400 11px "Heebo";color:var(--muted)}
 .block .bh .up{border:1px solid var(--line);background:#fff;border-radius:6px;width:24px;height:22px;cursor:pointer;font:700 12px/1 "Heebo";color:var(--ink);margin-inline-start:6px;padding:0}
+.block .bh .up.dn{margin-inline-start:3px}
 .block .bh .up:hover{border-color:var(--ink)}
 .mini{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-top:6px}
 .sw{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.sw button{display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px 3px 5px;font:400 12px "HIT Simpler Regular","Heebo";cursor:pointer}.sw button i{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}.sw button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:700}
@@ -211,7 +212,7 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
     </select>
   </details>
 
-  <details>
+  <details style="display:none">
     <summary>פונטים</summary>
     <p class="hint">Sunday ו-Simpler Pro מוטמעים בכלי – אין צורך להתקין כלום. אפשר לטעון קבצים חלופיים אם יש גרסה חדשה.</p>
     <div id="fontStatus"></div>
@@ -617,20 +618,20 @@ function buildUI(){
   const bw=$("blocks");bw.innerHTML="";
   for(const b of BLOCKS){
     const d=document.createElement("div");d.className="block";d.dataset.bk=b.k;
-    d.innerHTML=`<div class="bh"><span>${b.label}${b.k!=="credit"?`<button type="button" class="up" data-up="${b.k}" title="העברה מעל הבלוק הקודם">↑</button>`:""}</span><span class="tag" data-ft></span></div>
+    d.innerHTML=`<div class="bh"><span>${b.label}${b.k!=="credit"?`<button type="button" class="up" data-up="${b.k}" title="העברה למעלה">↑</button><button type="button" class="up dn" data-dn="${b.k}" title="העברה למטה">↓</button>`:""}</span><span class="tag" data-ft></span></div>
       <textarea data-k="${b.k}" rows="${Math.max(1,(S.text[b.k]||"").split("\n").length)}"></textarea>
       <div class="mini"><input type="range" min="${b.k==="credit"?1:1.5}" max="${b.k==="credit"?4:14}" step="0.1" data-s="${b.k}">
       <span></span></div>
-      <div class="sw" data-c="${b.k}">${COLOR_OPTS.map(([v,n,c])=>`<button type="button" data-v="${v}" title="${n}" style="--c:${c}"><i></i>${n}</button>`).join("")}<label class="cust" title="בחירת צבע חופשית"><i></i>אחר<input type="color" data-cc="${b.k}"></label></div>
-      <div class="mini" style="grid-template-columns:1fr"><select data-f="${b.k}">${FONT_OPTS.map(([v,n])=>`<option value="${v}">${n}</option>`).join("")}</select></div>`;
+      <div class="sw" data-c="${b.k}">${COLOR_OPTS.map(([v,n,c])=>`<button type="button" data-v="${v}" title="${n}" style="--c:${c}"><i></i>${n}</button>`).join("")}<label class="cust" title="בחירת צבע חופשית"><i></i>אחר<input type="color" data-cc="${b.k}"></label></div>`;
     bw.appendChild(d);
   }
   bw.querySelectorAll("textarea").forEach(t=>t.oninput=()=>{S.text[t.dataset.k]=t.value;t.rows=Math.max(1,t.value.split("\n").length);render()});
   bw.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{S.bsize[r.dataset.s]=+r.value;render()});
   bw.querySelectorAll(".sw button").forEach(btn=>btn.onclick=()=>{const k=btn.parentNode.dataset.c;S.bcolor[k]=btn.dataset.v;syncUI(true);render()});
-  bw.querySelectorAll("[data-up]").forEach(btn=>btn.onclick=()=>{const o=cleanOrder(S.order);const i=o.indexOf(btn.dataset.up);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];S.order=o;syncUI(true);render()}});
+  const moveBlock=(k,dir)=>{const o=cleanOrder(S.order);const i=o.indexOf(k),j=i+dir;if(i<0||j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];S.order=o;syncUI(true);render()};
+  bw.querySelectorAll("[data-up]").forEach(btn=>btn.onclick=()=>moveBlock(btn.dataset.up,-1));
+  bw.querySelectorAll("[data-dn]").forEach(btn=>btn.onclick=()=>moveBlock(btn.dataset.dn,1));
   bw.querySelectorAll("[data-cc]").forEach(inp=>inp.oninput=()=>{S.bcolor[inp.dataset.cc]=inp.value.toUpperCase();syncUI(true);render()});
-  bw.querySelectorAll("[data-f]").forEach(r=>r.onchange=()=>{S.bfont[r.dataset.f]=r.value;render()});
   const col=(id,key)=>{$(id).oninput=e=>{S[key]=e.target.value.toUpperCase();S.theme=null;syncUI(true);render()}};
   col("cBg","bg");col("cPri","pri");col("cAcc","acc");
   $("colW").oninput=e=>{S.colW=+e.target.value;render()};
@@ -673,15 +674,16 @@ function syncUI(keepColors){
   document.querySelectorAll("[data-s]").forEach(r=>r.value=S.bsize[r.dataset.s]);
   document.querySelectorAll(".sw").forEach(w=>{const k=w.dataset.c;let hit=false;w.querySelectorAll("button").forEach(b=>{const on=b.dataset.v===S.bcolor[k];hit=hit||on;b.classList.toggle("on",on);if(b.dataset.v==="pri")b.style.setProperty("--c",S.pri);if(b.dataset.v==="acc")b.style.setProperty("--c",S.acc)});
     const cu=w.querySelector(".cust");if(cu){const col=colorOf(k);cu.classList.toggle("on",!hit);cu.style.setProperty("--c",col);const inp=cu.querySelector("input");if(document.activeElement!==inp&&/^#[0-9a-f]{6}$/i.test(col))inp.value=col.toLowerCase()}});
-  document.querySelectorAll("[data-f]").forEach(r=>{r.value=S.bfont[r.dataset.f];r.closest(".block").querySelector("[data-ft]").textContent=FONT_OPTS.find(o=>o[0]===r.value)[1]});
+  // fonts are fixed per block (brand typography) – the header only shows which font is used
+  S.bfont=DEFAULT().bfont;
+  document.querySelectorAll("#blocks .block").forEach(el=>{const o=FONT_OPTS.find(o=>o[0]===S.bfont[el.dataset.bk]);el.querySelector("[data-ft]").textContent=o?o[1]:""});
   $("colW").value=S.colW;
-  {const bw=$("blocks");const o=cleanOrder(S.order);S.order=o;[...o,"credit"].forEach((k,i)=>{const el=bw.querySelector(`[data-bk="${k}"]`);if(el){bw.appendChild(el);const u=el.querySelector(".up");if(u)u.style.visibility=i===0?"hidden":""}})}
+  {const bw=$("blocks");const o=cleanOrder(S.order);S.order=o;[...o,"credit"].forEach((k,i)=>{const el=bw.querySelector(`[data-bk="${k}"]`);if(el){bw.appendChild(el);const u=el.querySelector("[data-up]"),dn=el.querySelector("[data-dn]");if(u)u.style.visibility=i===0?"hidden":"";if(dn)dn.style.visibility=i===o.length-1?"hidden":""}})}
   syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;
   S.logoMode="tag";$("logoColor").value=S.logoColor;
   $("invName").value=S.name||"";
   $("saveHint").textContent=S.docId?"פתוחה הזמנה שמורה – שמירה תעדכן אותה.":"";
 }
-document.addEventListener("change",e=>{if(e.target.matches("[data-f]"))syncUI(true)});
 
 // ---------- background image ----------
 async function compressImage(img,maxSide,targetChars){
