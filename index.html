@@ -30,6 +30,15 @@ aside{background:var(--panel);border-left:1px solid var(--line);overflow:auto;pa
 .stage{overflow:auto;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:28px;gap:12px}
 #cv{box-shadow:0 10px 40px rgba(0,0,0,.14);background:#fff;max-width:100%;cursor:grab;touch-action:none}
 #cv.drag{cursor:grabbing}
+#cv.txt{cursor:text}
+.cvwrap{position:relative;line-height:0}
+#inlineEd{position:absolute;display:none;margin:0;padding:0;border:0;background:transparent;resize:none;overflow:hidden;direction:rtl;text-align:right;unicode-bidi:plaintext;outline:1.5px dashed var(--accent);outline-offset:4px;white-space:pre;min-height:0;border-radius:0;z-index:2}
+.stage.dropping .cvwrap::after{content:"שחררו כאן – התמונה תהפוך לרקע";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,173,238,.18);outline:3px dashed var(--accent);outline-offset:-3px;font:900 22px "HIT Simpler Black","Heebo";color:#004f6e;line-height:1.3;text-align:center;padding:20px}
+.sw label.cust{display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px 3px 5px;font:400 12px "HIT Simpler Regular","Heebo";cursor:pointer;margin:0;color:inherit;position:relative}
+.sw label.cust i{width:14px;height:14px;border-radius:50%;background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}
+.sw label.cust.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:700}
+.sw label.cust.on i{background:var(--c)}
+.sw label.cust input{position:absolute;opacity:0;width:100%;height:100%;inset:0;cursor:pointer;border:0;padding:0}
 .warn{background:#fff3cd;border:1px solid #f0d77a;color:#6a5300;padding:8px 12px;border-radius:8px;font-size:13px;display:none;max-width:560px}
 .hint{color:var(--muted);font-size:12px}
 details{border-bottom:1px solid var(--line);padding:6px 0}
@@ -39,7 +48,7 @@ summary::-webkit-details-marker{display:none}
 summary::after{content:"+";color:var(--muted);font-weight:400}
 details[open] summary::after{content:"–"}
 label{display:block;font:700 12px "HIT Simpler Bold","Heebo";color:#333;margin:12px 0 5px}
-textarea,input[type=text],select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:15px "HIT Simpler Regular","Heebo";background:#fff;color:var(--ink)}
+textarea,input[type=text],input[type=number],select{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:15px "HIT Simpler Regular","Heebo";background:#fff;color:var(--ink)}
 textarea{resize:vertical;min-height:44px;line-height:1.35}
 textarea:focus,input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
 .row{display:flex;gap:8px;align-items:center}
@@ -107,6 +116,14 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
   <details open>
     <summary>פורמט</summary>
     <div class="chips" id="formats"></div>
+    <div id="customBox" style="display:none">
+      <div class="row" style="margin-top:10px">
+        <div><label>רוחב (px)</label><input type="number" id="cW" min="300" max="6000" step="10"></div>
+        <div style="flex:0 0 auto;padding-top:26px"><button class="btn sec" id="cSwap" title="החלפה בין רוחב לגובה" style="padding:7px 12px">⇄</button></div>
+        <div><label>גובה (px)</label><input type="number" id="cH" min="300" max="6000" step="10"></div>
+      </div>
+      <p class="hint">למשל 1920×1080 למסך, 1500×500 לבאנר. הטקסט מותאם אוטומטית לכל מידה.</p>
+    </div>
   </details>
 
   <details open>
@@ -128,7 +145,7 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
     <input type="range" id="colW" min="40" max="100" step="1">
   </details>
 
-  <details>
+  <details id="imgDetails">
     <summary>תמונת רקע</summary>
     <div class="btns" style="margin-top:0">
       <label class="btn sec" style="margin:0;display:inline-block">בחירת תמונה<input type="file" id="imgIn" accept="image/*" hidden></label>
@@ -153,7 +170,9 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
       <button class="btn sec" id="imgReset" style="flex:0 0 auto;padding:7px 14px">איפוס מיקום</button>
     </div>
     <label>שקיפות</label><input type="range" id="imgOp" min="0" max="1" step="0.01">
-    <label>החשכה (לטקסט בהיר על תמונה)</label><input type="range" id="imgDark" min="0" max="0.8" step="0.01">
+    <label>הצללה לקריאות הטקסט</label>
+    <div class="chips" id="imgShade"><button class="chip" data-v="text">רק מאחורי הטקסט</button><button class="chip" data-v="all">כל התמונה</button></div>
+    <input type="range" id="imgDark" min="0" max="0.8" step="0.01" style="margin-top:8px">
     <label>מיזוג עם צבע הרקע</label>
     <select id="imgBlend">
       <option value="source-over">רגיל</option>
@@ -210,8 +229,10 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
 
 <section class="stage">
   <div class="warn" id="warn"></div>
-  <canvas id="cv"></canvas>
+  <div class="cvwrap"><canvas id="cv"></canvas><textarea id="inlineEd" spellcheck="false"></textarea></div>
   <div class="hint" id="dims"></div>
+  <div class="hint">לחיצה על טקסט בהזמנה עורכת אותו · אפשר לגרור תמונה לדף</div>
+  <div class="hint" id="fitNote"></div>
 </section>
 </main>
 
@@ -230,10 +251,11 @@ const LOGO_TAG="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABEwAAAFtCAYAAAAdyf
 const LOGO_MARK="data:image/png;base64,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";
 
 const FORMATS={
-  a4:{name:"A4 / פוסטר",w:1754,h:2480,export:2480/1754},
-  ig:{name:"אינסטגרם 4:5",w:1080,h:1350,export:1},
-  sq:{name:"ריבוע",w:1080,h:1080,export:1},
-  st:{name:"סטורי",w:1080,h:1920,export:1}
+  a4:{name:"A4 / פוסטר",w:1754,h:2480,export:2480/1754,top:0.08},
+  ig:{name:"אינסטגרם 4:5",w:1080,h:1350,export:1,top:0.08},
+  sq:{name:"ריבוע",w:1080,h:1080,export:1,top:0.075},
+  st:{name:"סטורי",w:1080,h:1920,export:1,top:0.1},
+  custom:{name:"מותאם אישית",w:1920,h:1080,export:1,top:0.08}
 };
 const THEMES=[
   {id:"white",n:"לבן · תכלת",bg:"#FFFFFF",pri:"#000000",acc:"#00ADEE"},
@@ -273,12 +295,12 @@ const PRESETS={
 };
 
 const DEFAULT=()=>({
-  fmt:"a4",theme:"white",bg:"#FFFFFF",pri:"#000000",acc:"#00ADEE",colW:100,
+  fmt:"a4",cw:1920,ch:1080,theme:"white",bg:"#FFFFFF",pri:"#000000",acc:"#00ADEE",colW:100,
   text:{...PRESETS["הגשה"]},
   bsize:Object.fromEntries(BLOCKS.map(b=>[b.k,b.size])),
   bcolor:Object.fromEntries(BLOCKS.map(b=>[b.k,b.color])),
   bfont:Object.fromEntries(BLOCKS.map(b=>[b.k,b.font])),
-  img:{zoom:1,px:0,py:0,op:1,dark:0,blend:"source-over",gray:false,area:"full",fit:"cover",rot:0,flip:false},
+  img:{zoom:1,px:0,py:0,op:1,dark:0,shade:"text",blend:"source-over",gray:false,area:"full",fit:"cover",rot:0,flip:false},
   logoMode:"tag",logoColor:"auto",
   name:"",docId:null
 });
@@ -377,40 +399,84 @@ function drawLine(c,text,x,y,role,px,color){
   if(fake){c.save();c.translate(x,y);c.transform(1,0,-0.2,1,0,0);c.fillText(text,0,0);c.restore()}
   else c.fillText(text,x,y);
 }
-function layout(c,W,H){
-  const u=W/100;
-  const M=Math.round(W*0.07);
+// geometry: everything is relative to the short side, so portrait formats stay exactly as before
+// and wide/custom formats get sensible margins and sizes.
+function geo(W,H){const base=Math.min(W,H);return {u:base/100,M:Math.round(base*0.07)}}
+function fmtTop(){const F=FORMATS[S._real||S.fmt]||FORMATS.a4;return F.top!=null?F.top:0.08}
+const MIN_U=2.4; // readability floor for auto-fit (in % of the short side)
+function blockLines(k){return (S.text[k]||"").split("\n").map(s=>s.trimEnd()).filter((s,i,a)=>!(s===""&&(i===0||i===a.length-1)))}
+function blockOrder(){return BLOCKS}
+// one layout pass at a given fit factor (1 = sizes as set by the user)
+function layoutPass(c,W,H,fit){
+  const {u,M}=geo(W,H);
   const rightX=W-M;
   const colMax=(W-2*M)*S.colW/100;
-  const topY=H*(S.fmt==="st"?0.1:S.fmt==="sq"?0.075:0.08);
-  const ops=[];let y=topY;let first=true;
-  for(const b of BLOCKS){
+  const topY=Math.max(M*0.9,H*fmtTop());
+  const ops=[],boxes=[];let y=topY;let first=true;
+  for(const b of blockOrder()){
     if(b.k==="credit")continue;
-    const lines=(S.text[b.k]||"").split("\n").map(s=>s.trimEnd()).filter((s,i,a)=>!(s===""&&(i===0||i===a.length-1)));
+    const lines=blockLines(b.k);
     if(!lines.length||lines.every(l=>!l.trim()))continue;
     const role=S.bfont[b.k];
-    let px=S.bsize[b.k]*u;
+    const base=S.bsize[b.k]*u;
+    let px=fit>=1?base:Math.max(base*fit,Math.min(base,MIN_U*u));
     c.font=fontStr(role,px);
     const widest=Math.max(...lines.map(l=>c.measureText(l).width*(FONTS[role].italicFb&&!fontOK[role]?1.04:1)));
     let shrunk=false;
     if(widest>colMax){px*=colMax/widest;shrunk=true}
     const lh=px*b.lh;
-    if(!first)y+=b.gap*u;
+    if(!first)y+=b.gap*u*Math.min(1,fit);
     first=false;
     const color=colorOf(b.k);
-    for(const l of lines){
-      y+=lh*(l===lines[0]?0.86:1);
-      ops.push({t:l,x:rightX,y,role,px,color});
-      if(l===lines[0])y+=lh*0.14;
-    }
+    const top=y;
+    lines.forEach((l,i)=>{
+      y+=lh*(i===0?0.86:1);
+      ops.push({t:l,x:rightX,y,role,px,color,k:b.k});
+      if(i===0)y+=lh*0.14;
+    });
+    boxes.push({k:b.k,top,bottom:y+lh*0.12,px,lh,role,color,right:rightX,w:colMax,lines});
     ops.push({shrunk,k:b.k});
   }
-  return {ops,bottom:y,M,u};
+  return {ops,boxes,bottom:y,M,u,fit};
+}
+// lower edge the text column may reach: above the logo, or the bottom margin
+function textLimit(W,H){const {u,M}=geo(W,H);const lb=logoBox(W,H,M);return lb?lb.y-u*1.5:H-M}
+// auto-fit: if the text would run into the logo, shrink the whole text composition
+// proportionally (sizes + gaps) – never below a readable size, never touching the content.
+function layout(c,W,H){
+  const limit=textLimit(W,H);
+  let L=layoutPass(c,W,H,1);
+  if(L.bottom<=limit){L.overflow=false;return L}
+  let lo=0,hi=1,best=null;
+  for(let i=0;i<20;i++){const m=(lo+hi)/2;const t=layoutPass(c,W,H,m);if(t.bottom<=limit){best=t;lo=m}else hi=m}
+  if(best){best.overflow=false;best.autoFit=true;return best}
+  L=layoutPass(c,W,H,0);L.overflow=L.bottom>limit;L.autoFit=true;return L;
+}
+// local shade that follows the shape of the text: a soft, blurred patch behind every line,
+// dark under light text and light under dark text – the image stays bright everywhere else.
+function textShade(c,L,W,H){
+  const k=S.img.dark;const off=W*3;
+  // one tone for the whole composition, chosen by the (area-weighted) brightness of the text
+  let lw=0,aw=0;const rects=[];
+  for(const o of L.ops){if(o.t===undefined||!o.t.trim())continue;
+    c.font=fontStr(o.role,o.px);const w=c.measureText(o.t).width;const col=/^#[0-9a-f]{6}$/i.test(o.color)?o.color:"#000000";
+    lw+=lum(col)*w*o.px;aw+=w*o.px;
+    rects.push([o.x-w-o.px*0.2,o.y-o.px*0.95,w+o.px*0.4,o.px*1.3]);}
+  if(!rects.length)return;
+  const tone=lw/aw>0.5?"0,0,0":"255,255,255";
+  c.save();c.shadowOffsetX=off;c.fillStyle="#000";
+  c.shadowColor=`rgba(${tone},${Math.min(1,k*1.25)})`;
+  for(const [blur,n] of [[L.u*7,1],[L.u*2.5,k>0.45?2:1]]){
+    c.shadowBlur=blur;
+    for(let i=0;i<n;i++){c.beginPath();for(const r of rects)c.rect(r[0]-off,r[1],r[2],r[3]);c.fill()}
+  }
+  c.restore();
 }
 function logoBox(W,H,M){
   if(S.logoMode==="none")return null;
   const key=S.logoMode;const im=logoImgs[key];if(!im)return null;
-  const w=key==="tag"?W*0.27:W*0.075;
+  const base=Math.min(W,H);
+  const w=key==="tag"?base*0.27:base*0.075;
   const h=w*im.height/im.width;
   return {key,x:W-M-w,y:H-M-h,w,h};
 }
@@ -432,14 +498,16 @@ function paint(c,W,H){
     if(I.gray)c.filter="grayscale(1)";
     c.translate(G.cx,G.cy);c.rotate((I.rot||0)*Math.PI/180);if(I.flip)c.scale(-1,1);
     c.drawImage(bgImg,-G.iw/2,-G.ih/2,G.iw,G.ih);c.restore();
-    if(I.dark>0){c.fillStyle=`rgba(0,0,0,${I.dark})`;c.fillRect(R.x,R.y,R.w,R.h)}
+    if(I.dark>0&&I.shade==="all"){c.fillStyle=`rgba(0,0,0,${I.dark})`;c.fillRect(R.x,R.y,R.w,R.h)}
   }
   const L=layout(c,W,H);
-  for(const o of L.ops)if(o.t!==undefined)drawLine(c,o.t,o.x,o.y,o.role,o.px,o.color);
+  if(bgImg&&S.img.dark>0&&S.img.shade==="text")textShade(c,L,W,H);
+  for(const o of L.ops)if(o.t!==undefined&&!(c===ctx&&o.k===editingK))drawLine(c,o.t,o.x,o.y,o.role,o.px,o.color);
   // credit vertical
   const cr=(S.text.credit||"").trim();
   if(cr){
-    const px=S.bsize.credit*L.u;const role=S.bfont.credit;
+    let px=S.bsize.credit*L.u;const role=S.bfont.credit;
+    c.font=fontStr(role,px);{const w=c.measureText(cr).width,room=H-2*L.M;if(w>room)px*=room/w}
     c.save();c.translate(L.M*0.55,H-L.M);c.rotate(-Math.PI/2);
     c.font=fontStr(role,px);c.fillStyle=colorOf("credit");c.direction="rtl";c.textAlign="left";c.textBaseline="middle";
     c.fillText(cr,0,0);c.restore();
@@ -459,25 +527,27 @@ function paint(c,W,H){
   c.restore();
   return {L,lb};
 }
-let raf=0;
+let raf=0,lastL=null,editingK=null;
 function render(){cancelAnimationFrame(raf);raf=requestAnimationFrame(_render)}
 function _render(){
+  applyCustom();if(!FORMATS[S.fmt])S.fmt="a4";
   const F=FORMATS[S.fmt];
   if(cv.width!==F.w||cv.height!==F.h){cv.width=F.w;cv.height=F.h}
-  const {L,lb}=paint(ctx,F.w,F.h);
+  const {L,lb}=paint(ctx,F.w,F.h);lastL=L;
   // preview size
   const stage=document.querySelector(".stage");
   const maxH=window.innerHeight-63-110, maxW=stage.clientWidth-56;
   const sc=Math.min(maxH/F.h,maxW/F.w,1);
   cv.style.width=Math.round(F.w*sc)+"px";cv.style.height=Math.round(F.h*sc)+"px";
   $("dims").textContent=`${F.name} · ייצוא ‎${Math.round(F.w*F.export)}×${Math.round(F.h*F.export)}px‏`;
-  // warnings
-  const msgs=[];
-  const shr=L.ops.filter(o=>o.shrunk).map(o=>BLOCKS.find(b=>b.k===o.k).label);
-  if(shr.length)msgs.push(`הוקטן אוטומטית כדי להישאר בשוליים: ${shr.join(", ")}`);
-  const limit=lb?lb.y-L.u*1.5:F.h-L.M;
-  if(L.bottom>limit)msgs.push("הטקסט יורד מתחת לגבול – "+(lb?"עולה על הלוגו. ":"")+"קצרו טקסט או הקטינו גדלים.");
-  const w=$("warn");w.style.display=msgs.length?"block":"none";w.textContent=msgs.join(" · ");
+  // only real, unsolvable problems become a warning; automatic fixes get a quiet note
+  const shr=L.ops.some(o=>o.shrunk);
+  $("fitNote").textContent=(L.autoFit&&!L.overflow)||shr?"גודלי הטקסט הותאמו אוטומטית כדי שהכול ייכנס":"";
+  const w=$("warn");
+  if(L.overflow){w.style.display="block";w.textContent="יש יותר מדי טקסט לפורמט הזה גם בגודל הקטן ביותר שעוד קריא"+(lb?" – הוא עולה על הלוגו":"")+". נסו לקצר מעט, לבחור פורמט גבוה יותר או להסיר את הלוגו."}
+  else w.style.display="none";
+  placeEditor();
+  cv.dataset.fit=L.fit.toFixed(3);cv.dataset.overflow=L.overflow?"1":"0";
   saveDraft();
 }
 
@@ -488,7 +558,7 @@ function buildUI(){
   $("formats").innerHTML="";
   for(const k in FORMATS){const b=document.createElement("button");b.className="chip";b.dataset.k=k;b.textContent=FORMATS[k].name;b.onclick=()=>{S.fmt=k;syncUI();render()};$("formats").appendChild(b)}
   $("themes").innerHTML="";
-  for(const t of THEMES){const d=document.createElement("div");d.className="theme";d.dataset.k=t.id;d.style.background=t.bg;d.style.color=t.pri;d.innerHTML=`<span>כותרת</span><small style="color:${t.acc}">03.02 10:00</small><span class="n" style="color:${t.pri}">${t.n}</span>`;d.onclick=()=>{S.theme=t.id;S.bg=t.bg;S.pri=t.pri;S.acc=t.acc;if(t.id==="dark"&&bgImg&&S.img.dark===0)S.img.dark=0.35;syncUI();render()};$("themes").appendChild(d)}
+  for(const t of THEMES){const d=document.createElement("div");d.className="theme";d.dataset.k=t.id;d.style.background=t.bg;d.style.color=t.pri;d.innerHTML=`<span>כותרת</span><small style="color:${t.acc}">03.02 10:00</small><span class="n" style="color:${t.pri}">${t.n}</span>`;d.onclick=()=>{S.theme=t.id;S.bg=t.bg;S.pri=t.pri;S.acc=t.acc;syncUI();render()};$("themes").appendChild(d)}
   const bw=$("blocks");bw.innerHTML="";
   for(const b of BLOCKS){
     const d=document.createElement("div");d.className="block";
@@ -496,17 +566,22 @@ function buildUI(){
       <textarea data-k="${b.k}" rows="${Math.max(1,(S.text[b.k]||"").split("\n").length)}"></textarea>
       <div class="mini"><input type="range" min="${b.k==="credit"?1:1.5}" max="${b.k==="credit"?4:14}" step="0.1" data-s="${b.k}">
       <span></span></div>
-      <div class="sw" data-c="${b.k}">${COLOR_OPTS.map(([v,n,c])=>`<button type="button" data-v="${v}" title="${n}" style="--c:${c}"><i></i>${n}</button>`).join("")}</div>
+      <div class="sw" data-c="${b.k}">${COLOR_OPTS.map(([v,n,c])=>`<button type="button" data-v="${v}" title="${n}" style="--c:${c}"><i></i>${n}</button>`).join("")}<label class="cust" title="בחירת צבע חופשית"><i></i>אחר<input type="color" data-cc="${b.k}"></label></div>
       <div class="mini" style="grid-template-columns:1fr"><select data-f="${b.k}">${FONT_OPTS.map(([v,n])=>`<option value="${v}">${n}</option>`).join("")}</select></div>`;
     bw.appendChild(d);
   }
   bw.querySelectorAll("textarea").forEach(t=>t.oninput=()=>{S.text[t.dataset.k]=t.value;t.rows=Math.max(1,t.value.split("\n").length);render()});
   bw.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{S.bsize[r.dataset.s]=+r.value;render()});
   bw.querySelectorAll(".sw button").forEach(btn=>btn.onclick=()=>{const k=btn.parentNode.dataset.c;S.bcolor[k]=btn.dataset.v;syncUI(true);render()});
+  bw.querySelectorAll("[data-cc]").forEach(inp=>inp.oninput=()=>{S.bcolor[inp.dataset.cc]=inp.value.toUpperCase();syncUI(true);render()});
   bw.querySelectorAll("[data-f]").forEach(r=>r.onchange=()=>{S.bfont[r.dataset.f]=r.value;render()});
   const col=(id,key)=>{$(id).oninput=e=>{S[key]=e.target.value.toUpperCase();S.theme=null;syncUI(true);render()}};
   col("cBg","bg");col("cPri","pri");col("cAcc","acc");
   $("colW").oninput=e=>{S.colW=+e.target.value;render()};
+  const setC=()=>{const cl=v=>Math.max(300,Math.min(6000,Math.round(+v||0)));S.cw=cl($("cW").value);S.ch=cl($("cH").value);applyCustom();render()};
+  $("cW").onchange=setC;$("cH").onchange=setC;
+  $("cW").oninput=()=>{if(+$("cW").value>=300&&+$("cW").value<=6000)setC()};$("cH").oninput=()=>{if(+$("cH").value>=300&&+$("cH").value<=6000)setC()};
+  $("cSwap").onclick=()=>{[S.cw,S.ch]=[S.ch,S.cw];applyCustom();syncUI(true);render()};
   $("imgZoom").oninput=e=>{S.img.zoom=+e.target.value;syncImgUI();render()};
   $("imgRot").oninput=e=>{S.img.rot=+e.target.value;syncImgUI();render()};
   $("imgPx").oninput=e=>{S.img.px=+e.target.value;render()};
@@ -522,6 +597,7 @@ function buildUI(){
     S.img.px=ax*(G.R.w-G.iw)/(2*G.R.w);S.img.py=ay*(G.R.h-G.ih)/(2*G.R.h);syncImgUI();render()};an.appendChild(b)}
   $("imgOp").oninput=e=>{S.img.op=+e.target.value;render()};
   $("imgDark").oninput=e=>{S.img.dark=+e.target.value;render()};
+  $("imgShade").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.img.shade=b.dataset.v;syncImgUI();render()});
   $("imgBlend").onchange=e=>{S.img.blend=e.target.value;render()};
   $("imgGray").onchange=e=>{S.img.gray=e.target.checked;render()};
   $("logoMode").onchange=e=>{S.logoMode=e.target.value;render()};
@@ -530,14 +606,18 @@ function buildUI(){
   $("author").value=ls.get("hitid-author")||"";
   $("author").oninput=e=>ls.set("hitid-author",e.target.value);
 }
+function applyCustom(){FORMATS.custom.w=S.cw||1920;FORMATS.custom.h=S.ch||1080}
 function syncUI(keepColors){
+  applyCustom();$("customBox").style.display=S.fmt==="custom"?"":"none";
+  if(document.activeElement!==$("cW"))$("cW").value=S.cw;if(document.activeElement!==$("cH"))$("cH").value=S.ch;
   document.querySelectorAll("#formats .chip").forEach(c=>c.classList.toggle("on",c.dataset.k===S.fmt));
   document.querySelectorAll(".theme").forEach(c=>c.classList.toggle("on",c.dataset.k===S.theme));
   if(!keepColors){$("cBg").value=S.bg.toLowerCase();$("cPri").value=S.pri.toLowerCase();$("cAcc").value=S.acc.toLowerCase()}
   $("cBgT").textContent=S.bg;$("cPriT").textContent=S.pri;$("cAccT").textContent=S.acc;
   document.querySelectorAll("#blocks textarea").forEach(t=>{t.value=S.text[t.dataset.k]||"";t.rows=Math.max(1,t.value.split("\n").length)});
   document.querySelectorAll("[data-s]").forEach(r=>r.value=S.bsize[r.dataset.s]);
-  document.querySelectorAll(".sw").forEach(w=>{const k=w.dataset.c;w.querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.v===S.bcolor[k]);if(b.dataset.v==="pri")b.style.setProperty("--c",S.pri);if(b.dataset.v==="acc")b.style.setProperty("--c",S.acc)})});
+  document.querySelectorAll(".sw").forEach(w=>{const k=w.dataset.c;let hit=false;w.querySelectorAll("button").forEach(b=>{const on=b.dataset.v===S.bcolor[k];hit=hit||on;b.classList.toggle("on",on);if(b.dataset.v==="pri")b.style.setProperty("--c",S.pri);if(b.dataset.v==="acc")b.style.setProperty("--c",S.acc)});
+    const cu=w.querySelector(".cust");if(cu){const col=colorOf(k);cu.classList.toggle("on",!hit);cu.style.setProperty("--c",col);const inp=cu.querySelector("input");if(document.activeElement!==inp&&/^#[0-9a-f]{6}$/i.test(col))inp.value=col.toLowerCase()}});
   document.querySelectorAll("[data-f]").forEach(r=>{r.value=S.bfont[r.dataset.f];r.closest(".block").querySelector("[data-ft]").textContent=FONT_OPTS.find(o=>o[0]===r.value)[1]});
   $("colW").value=S.colW;
   syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;
@@ -560,30 +640,82 @@ async function compressImage(img,maxSide,targetChars){
   }
   return out;
 }
-$("imgIn").onchange=async e=>{
-  const f=e.target.files[0];if(!f)return;
+async function loadBgFile(f){
+  if(!f||!/^image\//.test(f.type)){toast("אפשר לגרור לכאן קובץ תמונה בלבד");return false}
   const url=URL.createObjectURL(f);
   try{
     const im=await loadImg(url);
     bgImg=im;bgData=null;
     S.img={...S.img,zoom:1,px:0,py:0,rot:0,flip:false};
-    if(lum(S.bg)<0.5&&S.img.dark===0)S.img.dark=0.3;
+    if(S.img.dark===0){S.img.dark=0.35;S.img.shade="text"}
     syncUI();render();
-    // make storable copy in background
     bgData=await compressImage(im,1800,180000);
-  }catch(err){toast("לא הצלחתי לפתוח את התמונה")}
-  e.target.value="";
-};
+    return true;
+  }catch(err){toast("לא הצלחתי לפתוח את התמונה");return false}
+}
+$("imgIn").onchange=async e=>{await loadBgFile(e.target.files[0]);e.target.value=""};
+// drop an image anywhere on the stage → it becomes the background
+{
+  const st=document.querySelector(".stage");let n=0;
+  const isFile=e=>e.dataTransfer&&[...e.dataTransfer.types].includes("Files");
+  window.addEventListener("dragover",e=>{if(isFile(e))e.preventDefault()});
+  window.addEventListener("drop",e=>{if(isFile(e))e.preventDefault()});
+  st.addEventListener("dragenter",e=>{if(!isFile(e))return;n++;st.classList.add("dropping")});
+  st.addEventListener("dragleave",()=>{if(--n<=0){n=0;st.classList.remove("dropping")}});
+  st.addEventListener("drop",async e=>{
+    if(!isFile(e))return;e.preventDefault();n=0;st.classList.remove("dropping");
+    const f=[...e.dataTransfer.files].find(f=>/^image\//.test(f.type));
+    if(await loadBgFile(f)){const d=$("imgDetails");d.open=true;setTimeout(()=>d.scrollIntoView({behavior:"smooth",block:"start"}),60);toast("התמונה הוגדרה כרקע")}
+  });
+}
 $("imgClear").onclick=()=>{bgImg=null;bgData=null;render()};
 // drag to pan
-let drag=null;
-cv.addEventListener("pointerdown",e=>{if(!bgImg)return;drag={x:e.clientX,y:e.clientY,px:S.img.px,py:S.img.py};cv.setPointerCapture(e.pointerId);cv.classList.add("drag")});
+let drag=null,press=null;
+function cvPoint(e){const r=cv.getBoundingClientRect();const F=FORMATS[S.fmt];return {x:(e.clientX-r.left)*F.w/r.width,y:(e.clientY-r.top)*F.h/r.height}}
+function hitBlock(e){
+  if(!lastL)return null;const p=cvPoint(e);const F=FORMATS[S.fmt];const pad=lastL.u*0.8;
+  for(const b of lastL.boxes)if(p.y>=b.top-pad&&p.y<=b.bottom+pad&&p.x>=b.right-b.w-pad&&p.x<=b.right+pad)return b.k;
+  if((S.text.credit||"").trim()&&p.x<lastL.M*1.1&&p.y>lastL.M&&p.y<F.h-lastL.M*0.5)return "credit";
+  return null;
+}
+cv.addEventListener("pointerdown",e=>{
+  press={x:e.clientX,y:e.clientY};
+  if(!bgImg)return;drag={x:e.clientX,y:e.clientY,px:S.img.px,py:S.img.py,moved:false};cv.setPointerCapture(e.pointerId);
+});
 cv.addEventListener("pointermove",e=>{
-  if(!drag)return;const F=FORMATS[S.fmt];const sc=F.w/cv.clientWidth;const G=imgGeom(F.w,F.h);
+  if(!drag){cv.classList.toggle("txt",!!hitBlock(e));return}
+  if(!drag.moved&&Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<4)return;
+  drag.moved=true;cv.classList.add("drag");
+  const F=FORMATS[S.fmt];const sc=F.w/cv.clientWidth;const G=imgGeom(F.w,F.h);
   const dx=(e.clientX-drag.x)*sc,dy=(e.clientY-drag.y)*sc;
   S.img.px=clampP(drag.px+dx/G.R.w);S.img.py=clampP(drag.py+dy/G.R.h);
   syncImgUI();render();
 });
+cv.addEventListener("pointerup",e=>{
+  const click=press&&Math.hypot(e.clientX-press.x,e.clientY-press.y)<4;press=null;
+  if(click){const k=hitBlock(e);if(k)startEdit(k)}
+});
+// ---------- inline editing on the canvas ----------
+const ed=$("inlineEd");
+function startEdit(k){
+  if(k==="credit"){const t=document.querySelector('#blocks textarea[data-k="credit"]');t.closest("details").open=true;t.scrollIntoView({behavior:"smooth",block:"center"});t.focus();return}
+  editingK=k;ed.value=S.text[k]||"";ed.style.display="block";render();
+  requestAnimationFrame(()=>{ed.focus();ed.setSelectionRange(ed.value.length,ed.value.length)});
+}
+function stopEdit(){if(!editingK)return;editingK=null;ed.style.display="none";render()}
+function placeEditor(){
+  if(!editingK||!lastL)return;
+  const b=lastL.boxes.find(x=>x.k===editingK);const F=FORMATS[S.fmt];const sc=cv.clientWidth/F.w;
+  if(!b){ // block became empty – keep the editor where the text column starts
+    ed.style.top=(lastL.M*sc)+"px";ed.style.right=(lastL.M*sc)+"px";ed.style.width=((F.w-2*lastL.M)*sc*S.colW/100)+"px";return}
+  ed.style.font=fontStr(b.role,b.px*sc);ed.style.lineHeight=(b.lh*sc)+"px";ed.style.color=b.color;ed.style.caretColor=b.color;
+  ed.style.right=((F.w-b.right)*sc)+"px";ed.style.width=(b.w*sc+2)+"px";
+  ed.style.top=((b.top-b.lh*0.06)*sc)+"px";
+  ed.style.height="0px";ed.style.height=ed.scrollHeight+"px";
+}
+ed.addEventListener("input",()=>{S.text[editingK]=ed.value;const t=document.querySelector(`#blocks textarea[data-k="${editingK}"]`);if(t){t.value=ed.value;t.rows=Math.max(1,ed.value.split("\n").length)}render()});
+ed.addEventListener("blur",stopEdit);
+ed.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();ed.blur()}});
 const endDrag=()=>{drag=null;cv.classList.remove("drag")};
 function clampP(v){return Math.max(-1.5,Math.min(1.5,v))}
 cv.addEventListener("wheel",e=>{if(!bgImg)return;e.preventDefault();S.img.zoom=Math.max(0.2,Math.min(4,S.img.zoom*Math.exp(-e.deltaY*0.0015)));syncImgUI();render()},{passive:false});
@@ -591,14 +723,15 @@ function syncImgUI(){
   const I=S.img;$("imgZoom").value=I.zoom;$("imgRot").value=I.rot||0;$("imgPx").value=I.px;$("imgPy").value=I.py;$("imgFlip").checked=!!I.flip;
   $("vZoom").textContent=Math.round(I.zoom*100)+"%";$("vRot").textContent=(I.rot||0)+"°";
   document.querySelectorAll("#imgArea .chip").forEach(c=>c.classList.toggle("on",c.dataset.v===(I.area||"full")));
+  document.querySelectorAll("#imgShade .chip").forEach(c=>c.classList.toggle("on",c.dataset.v===(I.shade||"all")));
   document.querySelectorAll("#imgFit .chip").forEach(c=>c.classList.toggle("on",c.dataset.v===(I.fit||"cover")));
 }
-cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointercancel",endDrag);
+cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointerleave",()=>cv.classList.remove("txt"));cv.addEventListener("pointercancel",endDrag);
 
 // ---------- draft ----------
 let draftT=0;
 function saveDraft(){clearTimeout(draftT);draftT=setTimeout(()=>ls.set("hitid-draft",JSON.stringify(S)),400)}
-function loadDraft(){try{const d=JSON.parse(ls.get("hitid-draft")||"null");if(d&&d.text)S=Object.assign(DEFAULT(),d,{img:Object.assign(DEFAULT().img,d.img||{})})}catch(e){}}
+function loadDraft(){try{const d=JSON.parse(ls.get("hitid-draft")||"null");if(d&&d.text)S=Object.assign(DEFAULT(),d,{img:Object.assign(DEFAULT().img,{shade:"all"},d.img||{})})}catch(e){}}
 
 // ---------- export ----------
 function exportCanvas(){
@@ -638,7 +771,7 @@ $("pdfBtn").onclick=()=>{
   const F=FORMATS[S.fmt];const c=renderAtScale(S.fmt==="a4"?2:2);
   const isA4=S.fmt==="a4";
   const wmm=isA4?210:F.w/1080*150, hmm=isA4?297:F.h/1080*150;
-  const pdf=new window.jspdf.jsPDF({orientation:"portrait",unit:"mm",format:[wmm,hmm]});
+  const pdf=new window.jspdf.jsPDF({orientation:wmm>hmm?"landscape":"portrait",unit:"mm",format:[wmm,hmm]});
   pdf.addImage(c.toDataURL("image/jpeg",0.95),"JPEG",0,0,wmm,hmm);
   saveFile(fileBase()+".pdf",pdf.output("blob"));
 };
@@ -699,7 +832,7 @@ async function openDoc(d){
   const v=d.data();
   try{
     const st=JSON.parse(v.state);
-    S=Object.assign(DEFAULT(),st,{img:Object.assign(DEFAULT().img,st.img||{})});S.docId=d.id;
+    S=Object.assign(DEFAULT(),st,{img:Object.assign(DEFAULT().img,{shade:"all"},st.img||{})});S.docId=d.id;
     bgImg=null;bgData=null;
     if(v.hasBg){const b=await db.doc("invite_bg/"+d.id).get();const data=b.exists&&b.data().data;if(typeof data==="string"&&data.startsWith("data:image/")){bgData=data;bgImg=await loadImg(data)}}
     syncUI();showTab("edit");render();toast("נפתח לעריכה");
@@ -776,8 +909,6 @@ async function initCaps(){
   initCaps();
 })();
 
-// patch: real format top offsets when rendering at scale
-const _layout=layout;
 })();
 </script>
 </body>
