@@ -60,11 +60,23 @@ input[type=range]{width:100%;accent-color:var(--ink)}
 .themes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .theme{border:2px solid transparent;border-radius:10px;cursor:pointer;height:64px;position:relative;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);display:flex;flex-direction:column;align-items:flex-end;justify-content:center;padding:0 10px;font:900 15px/1 "HIT Simpler Black","Heebo"}
 .theme.on{border-color:var(--ink)}
+.theme .x{position:absolute;top:2px;left:4px;border:0;background:none;font:400 14px/1 "Heebo";cursor:pointer;opacity:.55;color:inherit;padding:2px}
+.theme .x:hover{opacity:1}
+.theme.add{background:#fff;color:var(--muted);align-items:center;border:2px dashed var(--line);box-shadow:none;font:700 13px "HIT Simpler Bold","Heebo";text-align:center}
+.pms{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pms .it{display:flex;flex-direction:column;width:76px;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:#fff;cursor:pointer;padding:0;font:400 11px "Heebo";text-align:right}
+.pms .it i{display:block;height:30px}
+.pms .it span{padding:3px 5px;direction:ltr;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pms .it.sel{outline:2px solid var(--ink)}
+.pmsTo{display:none;align-items:center;gap:6px;margin-top:8px;flex-wrap:wrap}
+.pmsTo .chip{padding:4px 10px}
 .theme small{font:800 italic 13px "HIT Sunday","Rubik";margin-top:3px}
 .theme span.n{position:absolute;bottom:3px;left:6px;font:400 10px "Heebo";opacity:.7}
 .block{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:10px 0;background:#fcfbfa}
 .block .bh{display:flex;justify-content:space-between;align-items:center;font:700 13px "HIT Simpler Bold","Heebo"}
 .block .bh .tag{font:400 11px "Heebo";color:var(--muted)}
+.block .bh .up{border:1px solid var(--line);background:#fff;border-radius:6px;width:24px;height:22px;cursor:pointer;font:700 12px/1 "Heebo";color:var(--ink);margin-inline-start:6px;padding:0}
+.block .bh .up:hover{border-color:var(--ink)}
 .mini{display:grid;grid-template-columns:1fr 92px;gap:8px;align-items:center;margin-top:6px}
 .sw{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}.sw button{display:flex;align-items:center;gap:5px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 9px 3px 5px;font:400 12px "HIT Simpler Regular","Heebo";cursor:pointer}.sw button i{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)}.sw button.on{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);font-weight:700}
 .anchor{direction:ltr;display:grid;grid-template-columns:repeat(3,26px);gap:4px}.anchor button{width:26px;height:26px;border:1px solid var(--line);background:#fff;border-radius:6px;cursor:pointer;position:relative}.anchor button::after{content:"";position:absolute;inset:9px;border-radius:50%;background:#bbb}.anchor button:hover::after{background:var(--ink)}.val{font-weight:400;color:var(--muted);margin-inline-start:6px}
@@ -134,6 +146,11 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
       <div><label>ראשי</label><div class="row"><input type="color" id="cPri"><span class="hint" id="cPriT"></span></div></div>
       <div><label>הדגשה</label><div class="row"><input type="color" id="cAcc"><span class="hint" id="cAccT"></span></div></div>
     </div>
+    <label>צבע פנטון</label>
+    <input type="text" id="pmsQ" placeholder="מספר או שם, למשל 801 או Process Blue" dir="auto" autocomplete="off">
+    <div class="pms" id="pmsRes"></div>
+    <div class="pmsTo" id="pmsTo"><span class="hint" id="pmsName"></span><button class="chip" data-t="bg">לרקע</button><button class="chip" data-t="pri">לצבע הראשי</button><button class="chip" data-t="acc">להדגשה</button></div>
+    <p class="hint" id="pmsHint" style="display:none">הצבעים על המסך הם קירוב ל-Pantone Coated (C). לדיוק בדפוס כדאי לבדוק מול מניפה.</p>
     <p class="hint">צבעי המותג: תכלת ‎#00ADEE‏, מגנטה ‎#EC008C‏, צהוב ‎#FFF200‏, כחול ‎#2771A0‏, שחור ולבן. צבע לכל בלוק טקסט בוחרים בתוך הבלוק.</p>
   </details>
 
@@ -185,12 +202,7 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
 
   <details>
     <summary>לוגו</summary>
-    <label>גרסה</label>
-    <select id="logoMode">
-      <option value="tag">לוגו + שורת הגדרה</option>
-      <option value="mark">סמל בלבד</option>
-      <option value="none">ללא לוגו</option>
-    </select>
+    <p class="hint" style="margin-top:0">הלוגו מופיע תמיד עם שורת ההגדרה.</p>
     <label>צבע הלוגו</label>
     <select id="logoColor">
       <option value="auto">אוטומטי לפי הרקע</option>
@@ -283,6 +295,7 @@ const BLOCKS=[
   {k:"details",label:"פרטים (מיקום, משתתפים)",tag:"Simpler Black",font:"black",size:3.7,lh:1.15,color:"pri",gap:2.2},
   {k:"credit",label:"קרדיט (אנכי בשוליים)",tag:"Simpler Regular",font:"reg",size:1.9,lh:1.2,color:"acc",gap:0}
 ];
+const ORDER0=BLOCKS.filter(b=>b.k!=="credit").map(b=>b.k);
 const COLOR_OPTS=[["pri","ראשי","#000"],["acc","הדגשה","#00ADEE"],["#000000","שחור","#000000"],["#FFFFFF","לבן","#FFFFFF"],["#EC008C","מגנטה","#EC008C"],["#00ADEE","תכלת","#00ADEE"]];
 const colorOf=k=>{const v=S.bcolor[k];return v==="acc"?S.acc:v==="pri"?S.pri:v};
 const FONT_OPTS=[["sunday","Sunday ExtraBold Italic"],["sundayB","Sunday Bold Italic"],["black","Simpler Black"],["bold","Simpler Bold"],["reg","Simpler Regular"]];
@@ -290,8 +303,7 @@ const FONT_OPTS=[["sunday","Sunday ExtraBold Italic"],["sundayB","Sunday Bold It
 const PRESETS={
   "הגשה":{intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:"שנה ב",title:"הגשת\nתרגיל\nמתכת",when:"יום שלישי\n03.02\n10:00 - 14:00",details:"כיתות:\n300+301, 302+303\n(כל קומה 3)\nמנחים: ערמון איילון,\nאייבי דניזל, עפרי ליפשיץ",credit:"דימוי: "},
   "הרצאת אורח":{intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:"הרצאת אורח",title:"שם המרצה\nשם ההרצאה",when:"יום רביעי\n12.03\n14:00",details:"אולם 210, בניין 5\nהכניסה חופשית",credit:"דימוי: "},
-  "ערב / אירוע":{intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:"ערב פתוח",title:"שם\nהאירוע",when:"יום חמישי\n20.03\n18:30",details:"לובי המחלקה, קומה 3\nכיבוד קל",credit:""},
-  "תערוכה":{intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:"תערוכה",title:"שם\nהתערוכה",when:"פתיחה\n05.06 | 19:00",details:"גלריית המחלקה\nרח' גולומב 52, חולון\nהתערוכה תוצג עד 20.06",credit:"דימוי: "}
+  "ערב / אירוע":{intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:"ערב פתוח",title:"שם\nהאירוע",when:"יום חמישי\n20.03\n18:30",details:"לובי המחלקה, קומה 3\nכיבוד קל",credit:""}
 };
 
 const DEFAULT=()=>({
@@ -301,7 +313,7 @@ const DEFAULT=()=>({
   bcolor:Object.fromEntries(BLOCKS.map(b=>[b.k,b.color])),
   bfont:Object.fromEntries(BLOCKS.map(b=>[b.k,b.font])),
   img:{zoom:1,px:0,py:0,op:1,dark:0,shade:"text",blend:"source-over",gray:false,area:"full",fit:"cover",rot:0,flip:false},
-  logoMode:"tag",logoColor:"auto",
+  logoMode:"tag",logoColor:"auto",order:ORDER0.slice(),
   name:"",docId:null
 });
 
@@ -405,7 +417,8 @@ function geo(W,H){const base=Math.min(W,H);return {u:base/100,M:Math.round(base*
 function fmtTop(){const F=FORMATS[S._real||S.fmt]||FORMATS.a4;return F.top!=null?F.top:0.08}
 const MIN_U=2.4; // readability floor for auto-fit (in % of the short side)
 function blockLines(k){return (S.text[k]||"").split("\n").map(s=>s.trimEnd()).filter((s,i,a)=>!(s===""&&(i===0||i===a.length-1)))}
-function blockOrder(){return BLOCKS}
+function cleanOrder(o){o=Array.isArray(o)?o.filter(k=>ORDER0.includes(k)):[];for(const k of ORDER0)if(!o.includes(k))o.push(k);return [...new Set(o)]}
+function blockOrder(){S.order=cleanOrder(S.order);return S.order.map(k=>BLOCKS.find(b=>b.k===k))}
 // one layout pass at a given fit factor (1 = sizes as set by the user)
 function layoutPass(c,W,H,fit){
   const {u,M}=geo(W,H);
@@ -413,10 +426,13 @@ function layoutPass(c,W,H,fit){
   const colMax=(W-2*M)*S.colW/100;
   const topY=Math.max(M*0.9,H*fmtTop());
   const ops=[],boxes=[];let y=topY;let first=true;
-  for(const b of blockOrder()){
-    if(b.k==="credit")continue;
+  // gaps belong to the position in the column, so reordering keeps the original rhythm
+  const order=blockOrder(),GAPS=ORDER0.map(k=>BLOCKS.find(b=>b.k===k).gap);
+  const moved=order.some((b,i)=>b.k!==ORDER0[i]);
+  order.forEach((b,pos)=>{b=Object.assign({},b,{gap:moved?Math.max(GAPS[pos],0.9):GAPS[pos]});
+    if(b.k==="credit")return;
     const lines=blockLines(b.k);
-    if(!lines.length||lines.every(l=>!l.trim()))continue;
+    if(!lines.length||lines.every(l=>!l.trim()))return;
     const role=S.bfont[b.k];
     const base=S.bsize[b.k]*u;
     let px=fit>=1?base:Math.max(base*fit,Math.min(base,MIN_U*u));
@@ -436,7 +452,7 @@ function layoutPass(c,W,H,fit){
     });
     boxes.push({k:b.k,top,bottom:y+lh*0.12,px,lh,role,color,right:rightX,w:colMax,lines});
     ops.push({shrunk,k:b.k});
-  }
+  });
   return {ops,boxes,bottom:y,M,u,fit};
 }
 // lower edge the text column may reach: above the logo, or the bottom margin
@@ -544,11 +560,44 @@ function _render(){
   const shr=L.ops.some(o=>o.shrunk);
   $("fitNote").textContent=(L.autoFit&&!L.overflow)||shr?"גודלי הטקסט הותאמו אוטומטית כדי שהכול ייכנס":"";
   const w=$("warn");
-  if(L.overflow){w.style.display="block";w.textContent="יש יותר מדי טקסט לפורמט הזה גם בגודל הקטן ביותר שעוד קריא"+(lb?" – הוא עולה על הלוגו":"")+". נסו לקצר מעט, לבחור פורמט גבוה יותר או להסיר את הלוגו."}
+  if(L.overflow){w.style.display="block";w.textContent="יש יותר מדי טקסט לפורמט הזה גם בגודל הקטן ביותר שעוד קריא"+(lb?" – הוא עולה על הלוגו":"")+". נסו לקצר מעט או לבחור פורמט גבוה יותר."}
   else w.style.display="none";
   placeEditor();
   cv.dataset.fit=L.fit.toFixed(3);cv.dataset.overflow=L.overflow?"1":"0";
   saveDraft();
+}
+
+// ---------- personal palettes (saved in this browser) ----------
+const myThemes=()=>{try{return JSON.parse(ls.get("hitid-mythemes")||"[]")}catch(e){return []}};
+function themeTile(t,mine){
+  const d=document.createElement("div");d.className="theme";d.dataset.k=t.id;d.style.background=t.bg;d.style.color=t.pri;
+  d.innerHTML=`<span>כותרת</span><small style="color:${t.acc}">03.02 10:00</small><span class="n" style="color:${t.pri}">${t.n}</span>`+(mine?`<button class="x" title="מחיקה">×</button>`:"");
+  d.onclick=()=>{S.theme=t.id;S.bg=t.bg;S.pri=t.pri;S.acc=t.acc;syncUI();render()};
+  if(mine)d.querySelector(".x").onclick=ev=>{ev.stopPropagation();ls.set("hitid-mythemes",JSON.stringify(myThemes().filter(x=>x.id!==t.id)));buildThemes();syncUI(true)};
+  return d;
+}
+function buildThemes(){
+  const g=$("themes");g.innerHTML="";
+  for(const t of THEMES)g.appendChild(themeTile(t,false));
+  const mine=myThemes();for(const t of mine)g.appendChild(themeTile(t,true));
+  if(mine.length<6){const a=document.createElement("div");a.className="theme add";a.title="שומר את צבעי הרקע, הראשי וההדגשה הנוכחיים כצבעוניות שלך (בדפדפן הזה)";a.textContent="+ שמירת הצבעים הנוכחיים";
+    a.onclick=()=>{const list=myThemes();const t={id:"my-"+Date.now(),n:"שלי "+(list.length+1),bg:S.bg,pri:S.pri,acc:S.acc};list.push(t);ls.set("hitid-mythemes",JSON.stringify(list));S.theme=t.id;buildThemes();syncUI(true);toast("הצבעוניות נשמרה")};g.appendChild(a)}
+}
+// ---------- Pantone (Coated) lookup – screen approximations ----------
+const PMS="100:F6EB61|101:F7EA48|102:FCE300|103:C5A900|104:AF9800|105:897A27|7401:F5E1A4|7402:ECD898|7403:EED484|7404:F4DA40|7405:F2CD00|7406:F1C400|7407:CBA052|106:F9E547|107:FBE122|108:FEDB00|109:FFD100|110:DAAA00|111:AA8A00|112:9C8412|113:FAE053|114:FBDD40|115:FDDA24|116:FFCD00|117:C99700|118:AC8400|119:897322|127:F3DD6D|128:F3D54E|129:F3D03E|130:F2A900|131:CC8A00|132:A07400|133:6C571B|1205:F8E08E|1215:FBD872|1225:FFC845|1235:FFB81C|1245:C69214|1255:AD841F|1265:886B25|120:FBDB65|121:FDD757|122:FED141|123:FFC72C|124:EAAA00|125:B58500|126:9A7611|7548:FFC600|7549:FFB500|7550:D19000|7551:B47E00|7552:73531D|7553:5A4522|7554:4B3D2A|7555:D29F13|7556:B78B20|7557:9F7D23|7558:967126|7559:8F6A2A|7560:7D622E|7561:6C5D34|134:FDD26E|135:FFC658|136:FFBF3F|137:FFA300|138:DE7C00|139:AF6D04|140:74531C|1345:FDD086|1355:FFC56E|1365:FFB549|1375:FF9E1B|1385:D57800|1395:996017|1405:6E4C1E|141:F2C75C|142:F1BE48|143:F1B434|144:ED8B00|145:CF7F00|146:A76D11|147:715C2A|7408:F6BE00|7409:F0B323|7410:FEAD77|7411:E6A65D|7412:D38235|7413:DC8633|7414:C16C18|7562:BD9B60|7563:D69A2D|7564:DB8A06|7565:CD7925|7566:AD6433|7567:89532F|7568:775135|7569:D78825|7570:D3832B|7571:C67D30|7572:B67233|7573:A7662B|7574:9E6A38|7575:835D32|712:FCC89B|713:FDBE87|714:FDAA63|715:F68D2E|716:EA7600|717:D45D00|718:BE4D00|148:FECB8B|149:FFC27B|150:FFB25B|151:FF8200|152:E57200|153:BE6A14|154:9B5A1A|155:EFD19F|156:EFBE7D|157:ECA154|158:E87722|159:CB6015|160:A1561C|161:603D20|1485:FFAE62|1495:FF8F1C|1505:FF6900|1525:B94700|1535:94450B|1545:653819|1555:FFB990|1565:FFA06A|1575:FF7F32|1585:FF6A13|1595:D86018|1605:A65523|1615:8B4720|162:FFBE9F|163:FF9D6E|164:FF7F41|165:FF671F|166:E35205|167:BE531C|168:73381D|7576:DB864E|7577:E07E3C|7578:DC6B2F|7579:DC582A|7580:C05131|7581:864A33|7582:674736|1625:FFA38B|1635:FF8D6D|1645:FF6A39|1655:FC4C02|1665:DC4405|1675:A9431E|1685:833921|169:FFB3AB|170:FF8674|171:FF5C39|172:FA4616|173:CF4520|174:963821|175:6B3529|7583:C4622D|7584:BA5826|7585:AF5C37|7586:9E5330|7587:924C2E|7588:7B4D35|7589:5C4738|7590:D4B59E|7591:C07D59|7592:B15533|7593:9D432C|7594:7C3A2D|7595:6B3D2E|7596:5C3D31|7597:D14124|7598:BD472A|7599:B33D26|7600:8D3F2B|7601:83412C|7602:7B4931|7603:674230|7604:E4D5D3|7605:E1BBB4|7606:D6938A|7607:C26E60|7608:A4493D|7609:823B34|7610:683431|7611:DDBCB0|7612:CA9A8E|7613:BC8A7E|7614:A37F74|7615:866761|7616:6B4C4C|7617:583D3E|7520:EABEB0|7521:C09C83|7522:B46A55|7523:AB5C57|7524:A45248|7525:9A6A4F|7526:8A391B|489:ECC3B2|488:ECBAA8|487:EAA794|486:E8927C|485:DA291C|484:9A3324|483:653024|176:FFB1BB|177:FF808B|178:FF585D|179:E03C31|180:BE3A34|181:81312F|1765:FFA3B5|1775:FF8DA1|1785:F8485E|1788:EE2737|1795:D22630|1805:AF272F|1815:7C2529|1767:FCAFC0|1777:FB637E|1787:F4364C|1797:CB333B|1807:A4343A|1817:643335|7618:C66E4E|7619:C04C36|7620:B7312C|7621:AB2328|7622:93272C|7623:8A2A2B|7624:802F2D|7625:E1523D|7626:C63527|7627:A72B2A|7628:9E2A2B|7629:6D3332|7630:633231|7631:572D2D|7415:E6BAA8|7416:E56A54|7417:E04E39|7418:CD545B|7419:B04A5A|7420:9B2242|7421:651D32|182:FABBCB|183:FC9BB3|184:F65275|185:E4002B|186:C8102E|187:A6192E|188:76232F|196:ECC7CD|197:E89CAE|198:DF4661|199:D50032|200:BA0C2F|201:9D2235|202:862633|189:F8A3BC|190:F67599|191:EF426F|192:E40046|193:BF0D3E|194:9B2743|195:782F40|1895:F5B6CD|1905:F59BBB|1915:EF4A81|1925:E0004D|1935:C5003E|1945:A6093D|1955:8A1538|705:F5DADF|706:F7CED7|707:F9B5C4|708:F890A5|709:EF6079|710:E03E52|711:CB2C30|698:F2D4D7|699:F4C3CC|700:F2ACB9|701:E68699|702:D25B73|703:B83A4B|704:9E2A2F|203:ECB3CB|204:E782A9|205:E0457B|206:CE0037|207:A50034|208:861F41|209:6F263D|210:F99FC9|211:F57EB6|212:F04E98|213:E31C79|214:CE0F69|215:AC145A|216:7D2248|7422:F4CDD4|7423:E06287|7424:E24585|7425:B52555|7426:A4123F|7427:971B2F|7428:6A2C3E|7632:D6C9CA|7633:C4A4A7|7634:C16784|7635:C63663|7636:BC204B|7637:912F46|7638:7E2D40|217:EABEDB|218:E56DB1|219:DA1884|220:A50050|221:910048|222:6C1D45|7639:936D73|7640:934054|7641:8E2C48|7642:732E4A|7643:672E45|7644:582D40|7645:502B3A|223:EF95CF|224:EB6FBD|225:DF1995|226:D0006F|227:AA0061|228:890C58|229:672146|230:F4A6D7|231:F277C6|232:E93CAC|233:C6007E|234:A20067|235:840B55|670:EAD3E2|671:E6BCD8|672:DFA0C9|673:D986BA|674:C6579A|675:AE2573|676:960051|677:E5CEDB|678:E3C8D8|679:DEBED2|680:C996B6|681:B06C96|682:994878|683:7C2855|684:E4C6D4|685:DCB6C9|686:D0A1BA|687:BE84A3|688:A76389|689:893B67|690:612141|510:EBBECB|509:E8B3C3|508:E4A9BB|507:D592AA|506:84344E|505:6F2C3F|504:572932|7429:E2BCCB|7430:DCA9BF|7431:C9809E|7432:B55C80|7433:A73A64|7434:9B3259|7435:872651|691:E9CDD0|692:E4BEC3|693:D7A3AB|694:C48490|695:B46B7A|696:984856|697:893C47|496:F2C6CF|495:F1BDC8|494:E9A2B2|493:DC8699|492:8F3237|491:7F3035|490:5D2A2C|503:E9C4C7|502:E5BAC1|501:DAA5AD|500:C6858F|499:7A3E3A|498:6A3735|497:512F2E|5035:DFC2C3|5025:DBB7BB|5015:CCA1A6|5005:B07C83|4995:9C6169|4985:874B52|4975:3F2021|236:F1A7DC|237:EC86D0|238:E45DBF|239:DB3EB1|240:C5299B|241:AF1685|242:80225F|2365:EFBAE1|2375:E277CD|2385:D539B5|2395:C800A1|2405:B0008E|2415:9E007E|2425:830065|243:EAB8E4|244:E59BDC|245:DD7FD3|246:C724B1|247:BB16A3|248:A51890|249:80276C|7646:A56E87|7647:A83D72|7648:991E66|7649:8A1B61|7650:722257|7651:6A2A5B|7652:5E2751|250:E7BAE4|251:DD9CDF|252:C964CF|253:AD1AAC|254:981D97|255:72246C|517:EBC6DF|516:E6BEDD|515:E2ACD7|514:D48BC8|513:93328E|512:833177|511:612C51|7436:EEDAEA|7437:CCAED0|7438:D59ED7|7439:B288B9|7440:A277A6|7441:9F5CC0|7442:963CBD|2562:D7A9E3|2572:C98BDB|2582:AC4FC6|2592:9B26B6|2602:87189D|2612:772583|2622:653165|7653:948794|7654:A2789C|7655:A15A95|7656:8E3A80|7657:6E2B62|7658:6A3460|7659:5D3754|524:D5C2D8|523:C9B1D0|522:BA9CC5|521:A57FB2|520:642F6C|519:59315F|518:4B3048|5245:DBCDD3|5235:D0BEC7|5225:C6B0BC|5215:AF95A6|5205:86647A|5195:66435A|5185:4A3041|5175:D8C8D1|5165:D3C0CD|5155:BFA5B8|5145:9B7793|5135:7E5475|5125:693C5E|5115:512A44|531:DFC8E7|530:D7B9E4|529:CAA2DD|528:B580D1|527:8031A7|526:702F8A|525:572C5F|256:D6BFDD|257:C6A1CF|258:8C4799|259:6D2077|260:642667|261:5D285F|262:51284F|2563:CBA3D8|2573:B884CB|2583:A05EB5|2593:84329B|2603:702082|2613:671E75|2623:5F2167|7660:9991A4|7661:8D6E97|7662:7A4183|7663:6B3077|7664:653279|7665:5E366E|7666:5C4E63|2567:C1A0DA|2577:A77BCA|2587:8246AF|2597:5C068C|2607:500778|2617:470A68|2627:3C1053|263:D7C6E6|264:C1A7E2|265:9063CD|266:753BBD|267:5F259F|268:582C83|269:512D6D|2635:C5B4E3|2645:AD96DC|2655:9678D3|2665:7D55C7|2685:330072|2695:2E1A47|270:B4B5DF|271:9595D2|272:7474C1|273:24135F|274:211551|275:201747|276:221C35|2705:A7A4E0|2715:8B84D7|2725:685BC7|2735:2E008B|2745:280071|2755:250E62|2765:201547|7667:6E7CA0|7668:686E9F|7669:615E9B|7670:565294|7671:514689|7672:4C4184|7673:535486|7443:DDDAE8|7444:B6B8DC|7445:A7A2C3|7446:8986CA|7447:5D4777|7448:4B384C|7449:41273B|7674:878CB4|7675:7C7FAB|7676:7566A0|7677:6F5091|7678:68478D|7679:563D82|7680:523178|663:E5E1E6|664:E0DBE3|665:C6BCD0|666:A192B2|667:7C6992|668:614B79|669:3F2A56|5315:D8D7DF|5305:C6C4D2|5295:B3B0C4|5285:8D89A5|5275:595478|5265:403A60|5255:1E1A34|538:C5CFDA|537:BBC7D6|536:A2B2C8|535:8E9FBC|534:1B365D|533:1F2A44|532:1C1F2A|7541:D9E1E2|7542:A4BCC2|7543:98A4AE|7544:768692|7545:425563|7546:253746|7547:131E29|552:B9D3DC|551:A3C7D2|550:8DB9CA|549:6BA4B8|548:003D4C|547:00313C|546:072B31|5455:BFCED6|5445:B7C9D3|5435:A6BBC8|5425:7A99AC|5415:5B7F95|5405:4F758B|5395:081F2C|642:D1DDE6|643:C6D6E3|644:9BB8D3|645:7DA1C4|646:5E8AB4|647:236192|648:002E5D|649:DBE2E9|650:CED9E5|651:A7BCD6|652:7D9BC1|653:326295|654:003A70|655:002554|656:DDE5ED|657:C8D8EB|658:B1C9E8|659:7BA4DB|660:407EC9|661:003594|662:001A70|7450:BDC5DB|7451:89ABE3|7452:8094DD|7453:7BA6DE|7454:5F8FB4|7455:3A5DAE|7456:606EB2|2706:CBD3EB|2716:9FAEE5|2726:485CC7|2736:1E22AA|2746:171C8F|2756:151F6D|2766:141B4D|2708:B8CCEA|2718:5C88DA|2728:0047BB|2738:06038D|2748:001871|2758:001E62|2768:071D49|2707:C3D7EE|2717:A7C6ED|2727:307FE2|2747:001A72|2757:001E60|2767:13294B|277:ABCAE9|278:8BB8E8|279:418FDE|280:012169|281:00205B|282:041E42|283:92C1E9|284:6CACE4|285:0072CE|286:0033A0|287:003087|288:002D72|289:0C2340|7681:94A9CB|7682:6787B7|7683:426DA9|7684:385E9D|7685:2C5697|7686:1D4F91|7687:1D428A|545:C6DAE7|544:BDD6E6|543:A4C8E1|542:7BAFD4|541:003C71|540:003057|539:00263A|290:B9D9EB|291:9BCBEB|292:69B3E7|293:003DA5|294:002F6C|295:002855|296:041C2C|2905:8DC8E8|2915:62B5E5|2925:009CDE|2935:0057B8|2945:004C97|2955:003865|2965:00263E|297:71C5E8|298:41B6E6|299:00A3E0|300:005EB8|301:004B87|302:003B5C|303:002A3A|7688:4698CB|7689:298FC2|7690:0076A8|7691:006298|7692:005587|7693:004976|7694:01426A|2975:99D6EA|2985:5BC2E7|2995:00A9E0|3005:0077C8|3015:00629B|3025:004F71|3035:003E51|7695:7BA7BC|7696:6399AE|7697:4E87A0|7698:41748D|7699:34657F|7700:165C7D|7701:005776|7457:BBDDE6|7458:71B2C9|7459:4298B5|7460:0086BF|7461:007DBA|7462:00558C|7463:002B49|304:9ADBE8|305:59CBE8|306:00B5E2|307:006BA6|308:00587C|309:003B49|635:A4DBE8|636:8BD3E6|637:4EC3E0|638:00AFD7|639:0095C8|640:0082BA|641:0067A0|7702:48A9C5|7703:009CBD|7704:0085AD|7705:007096|7706:006A8E|7707:00617F|7708:005670|628:B8DDE1|629:9BD3DD|630:77C5D5|631:3EB1C8|632:0093B2|633:007396|634:005F83|310:6AD1E3|311:05C3DE|312:00A9CE|313:0092BC|314:007FA3|315:00677F|316:004851|3105:68D2DF|3115:00C1D5|3125:00AEC7|3135:008EAA|3145:00778B|3155:006272|3165:004F59|7709:63B1BC|7710:00A7B5|7711:0097A9|7712:00859B|7713:007D8A|7714:007680|7715:006269|317:B1E4E3|318:88DBDF|319:2DCCD3|320:009CA6|321:008C95|322:007377|323:005F61|7464:A0D1CA|7465:40C1AC|7466:00B0B9|7467:00A3AD|7468:007398|7469:005F86|7470:005A70|7471:7EDDD3|7472:5CB8B2|7473:279989|7474:007681|7475:487A7B|7476:0D5257|7477:244C5A|5523:B6CFD0|5513:ABC7CA|5503:94B7BB|5493:7FA9AE|5483:4F868E|5473:115E67|5463:07272D|7716:00968F|7717:00857D|7718:007672|7719:006D68|7720:00635B|7721:005E5D|7722:005151|324:9CDBD9|325:64CCC9|326:00B2A9|327:008675|328:007367|329:00685E|330:00534C|3242:71DBD4|3252:2AD2C9|3262:00BFB3|3272:00A499|3282:008578|3292:00594F|3302:004C45|3245:7CE0D3|3255:2CD5C4|3265:00C7B1|3275:00B398|3285:009681|3295:007864|3305:004E42|3248:6DCDB8|3258:49C5B1|3268:00AB8E|3278:009B77|3288:008264|3298:006A52|3308:034638|566:B9DCD2|565:A1D6CA|564:86C8BC|563:6BBBAE|562:006F62|561:00594C|560:1D3C34|573:B5E3D8|572:A5DFD3|571:98DBCE|570:6BCABA|569:00816D|568:006C5B|567:173F35|559:ADCAB8|558:9ABEAA|557:85B09A|556:6FA287|555:28724F|554:205C40|553:284734|5595:BFCEC2|5585:A7BDB1|5575:92ACA0|5565:7F9C90|5555:5C7F71|5545:43695B|5535:183028|5665:BAC5B9|5655:B0BDB0|5645:A3B2A4|5635:94A596|5625:708573|5615:5E7461|5605:22372B|5527:BCC9C5|5517:B1C0BC|5507:9DB0AC|5497:829995|5487:5D7975|5477:3E5D58|5467:18332F|621:D1E0D7|622:B7CDC2|623:9AB9AD|624:789F90|625:507F70|626:285C4D|627:13322B|331:A7E6D7|332:8CE2D0|333:3CDBC0|334:009775|335:007B5F|336:00664F|337:8FD6BD|338:6ECEB2|339:00B388|340:00965E|341:007A53|342:006747|343:115740|7723:50A684|7724:00966C|7725:008755|7726:007B4B|7727:006F44|7728:006845|7729:005844|3375:7AE1BF|3385:47D7AC|3395:00C389|3405:00AF66|3415:007749|3425:006341|3435:154734|344:A0DAB3|345:91D6AC|346:71CC98|347:009A44|348:00843D|349:046A38|350:2C5234|351:A2E4B8|352:8FE2B0|353:80E0A7|354:00B140|355:009639|356:007A33|357:215732|7478:9BE3BF|7479:26D07C|7480:00BF6F|7481:00B74F|7482:009F4D|7483:275D38|7484:00573F|7730:4B9560|7731:228848|7732:007A3E|7733:007041|7734:286140|7735:36573B|7736:395542|7737:6BA539|7738:48A23F|7739:319B42|7740:3A913F|7741:44883E|7742:4A773C|7743:44693D|358:ADDC91|359:A1D884|360:6CC24A|361:43B02A|362:509E2F|363:4C8C2B|364:4A7729|7485:D0DEBB|7486:BCE194|7487:8EDD65|7488:78D64B|7489:74AA50|7490:719949|7491:79863C|365:C2E189|366:B7DD79|367:A4D65E|368:78BE20|369:64A70B|370:658D1B|371:546223|372:D4EB8E|373:CDEA80|374:C5E86C|375:97D700|376:84BD00|377:7A9A01|378:59621D|580:C4D6A4|579:BCD19B|578:B7CE95|577:A9C47F|576:789D4A|575:67823A|574:4E5B31|5807:D0D1AB|5797:C6C89B|5787:BABD8B|5777:A2A569|5767:8A8D4A|5757:6D712E|5747:3D441E|5875:D2CE9E|5865:CBC793|5855:C0BB87|5845:AFA96E|5835:A09958|5825:89813D|5815:555025|5803:C3C6A8|5793:B3B995|5783:A3AA83|5773:899064|5763:737B4C|5753:5E6738|5743:3E4827|7492:BFCC80|7493:BBC592|7494:9CAF88|7495:8F993E|7496:76881D|7497:7A7256|7498:5B6236|7744:BABC16|7745:ABAD23|7746:999B30|7747:888D30|7748:7C8034|7749:727337|7750:656635|379:E2E868|380:DBE442|381:CEDC00|382:C4D600|383:A8AD00|384:949300|385:787121|386:E9EC6B|387:E3E935|388:E0E721|389:D0DF00|390:B5BD00|391:9A9500|392:827A04|587:E3E48D|586:E0E27C|585:DBDE70|584:D2D755|583:B7BF10|582:8E8C13|581:625D20|393:F0EC74|394:EDE939|395:ECE81A|396:E1E000|397:BFB800|398:ADA400|399:A09200|3935:F3EA5D|3945:F3E500|3955:EFDF00|3965:EEDC00|3975:BBA600|3985:9A8700|3995:685C20|600:F1EB9C|601:F0E991|602:F0E87B|603:EDE04B|604:EADA24|605:E1CD00|606:CFB500|607:EBE49A|608:E9E186|609:E6DE77|610:E1D555|611:D7C826|612:C4B000|613:B39B00|461:E9DF97|460:E4D77E|459:DECD63|458:D9C756|457:B89D18|456:A28E2A|455:695B24|614:DCD59A|615:D6CF8D|616:D0C883|617:C0B561|618:AC9F3C|619:9F912A|620:8A7B19|7751:CAB64B|7752:CFB023|7753:C1A01E|7754:A08629|7755:897630|7756:736635|7757:675E33|7758:D4C304|7759:C4B200|7760:91852C|7761:747136|7762:5D6439|7763:585C3B|7764:535435|7765:BBB323|7766:B4A91F|7767:AA9D2E|7768:8F7E35|7769:716135|7770:635939|7771:4E4934|4545:D5CB9F|4535:CFC493|4525:C5B783|4515:B3A369|4505:998542|4495:8C7732|4485:614F25|454:CAC7A7|453:BFBB98|452:B0AA7E|451:9B945F|450:594A25|449:524727|448:4A412A|7499:F1E6B2|7500:DFD1A7|7501:D9C89E|7502:CEB888|7503:A89968|7504:94795D|7505:816040|468:DDCBA4|467:D3BC8D|466:C6AA76|465:B9975B|464:8B5B29|463:744F28|462:5C462B|7506:EFDBB2|7507:FCD299|7508:E1B87F|7509:D6A461|7510:C6893F|7511:B77729|7512:A6631B|719:EDC8A3|720:E7B78A|721:DDA46F|722:C88242|723:B36924|724:934D11|725:7D3F16|475:F3CFB3|474:F1C6A7|473:F0BF9B|472:E59E6D|471:B86125|470:A45A2A|469:693F23|726:E0C09F|727:D9B48F|728:CDA077|729:B58150|730:9E652E|731:774212|732:623412|4685:E0C6AD|4675:DCBFA6|4665:CDA788|4655:BF9474|4645:AD7C59|4635:946037|4625:4F2C1D|7513:E1B7A7|7514:D5A286|7515:C58B68|7516:99552B|7517:85431E|7518:6D4F47|7519:5E4B3C|4755:D7C4B7|4745:CDB5A7|4735:C0A392|4725:AE8A79|4715:956C58|4705:7C4D3A|4695:5B3427|482:DBC8B6|481:D3BBA8|480:C6A992|479:AA8066|478:703F2A|477:623B2A|476:4E3629|7527:D6D2C4|7528:C5B9AC|7529:B7A99A|7530:A39382|7531:7A6855|7532:63513D|7533:473729|7534:D1CCBD|7535:B7B09C|7536:A69F88|7537:A7ACA2|7538:949A90|7539:8E9089|7540:4B4F54|427:D0D3D4|428:C1C6C8|429:A2AAAD|430:7C878E|431:5B6770|432:333F48|433:1D252D|420:C7C9C7|421:B2B4B2|422:9EA2A2|423:898D8D|424:707372|425:54585A|426:25282A|441:BEC6C4|442:A2ACAB|443:919D9D|444:717C7D|445:505759|446:3F4444|447:373A36|413:BABBB1|414:A8A99E|415:919388|416:7E7F74|417:65665C|418:51534A|419:212322|400:C4BFB6|401:AFA9A0|402:9D968D|403:8C857B|404:776E64|405:696158|406:C4BCB7|407:B2A8A2|408:978C87|409:857874|410:746661|411:5E514D|412:382F2D|434:D0C4C5|435:C1B2B6|436:AB989D|437:7B6469|438:584446|439:453536|440:382E2C|Warm Gray 1:D7D2CB|Warm Gray 2:CBC4BC|Warm Gray 3:BFB8AF|Warm Gray 4:B6ADA5|Warm Gray 5:ACA39A|Warm Gray 6:A59C94|Warm Gray 7:968C83|Warm Gray 8:8C8279|Warm Gray 9:83786F|Warm Gray 10:796E65|Warm Gray 11:6E6259|Cool Gray 1:D9D9D6|Cool Gray 2:D0D0CE|Cool Gray 3:C8C9C7|Cool Gray 4:BBBCBC|Cool Gray 5:B1B3B3|Cool Gray 6:A7A8AA|Cool Gray 7:97999B|Cool Gray 8:888B8D|Cool Gray 9:75787B|Cool Gray 10:63666A|Cool Gray 11:53565A|Black 2:332F21|Black 3:212721|Black 4:31261D|Black 5:3E2B2E|Black 6:101820|Black 7:3D3935|Yellow:FEDD00|Yellow 012:FFD700|Orange 021:FE5000|Warm Red:F9423A|Red 032:EF3340|Rubine Red:CE0058|Rhodamine Red:E10098|Purple:BB29BB|Violet:440099|Blue 072:10069F|Reflex Blue:001489|Process Blue:0085CA|Green:00AB84|Black:2D2926|Yellow 0131:F2F0A1|Red 0331:FCAEBB|Magenta 0521:F1B2DC|Violet 0631:BF9BDE|Blue 0821:74D1EA|Green 0921:9DE7D7|Black 0961:9E978E|801:009ACE|802:44D62C|803:FFE900|804:FFAA4D|805:FF7276|806:FF3EB5|807:EA27C2|871:84754E|872:85714D|873:866D4B|874:8B6F4E|875:87674F|876:8B634B|877:8A8D8F|Medium Yellow:FFD900|Bright Orange:FF5E00|Bright Red:F93822|Strong Red:CE0056|Pink:D62598|Medium Purple:4E008E|Dark Blue:00239C|Medium Blue:0084CA|Bright Green:00B08B|Neutral Black:222223|8001:8D8C8A|8002:8D867D|8003:8A7E70|8004:897966|8005:8A745A|8006:897054|8020:978176|8021:9A7A6A|8022:A0715B|8023:A1664C|8024:A75B38|8025:AA552A|8040:918887|8041:99817C|8042:9C7971|8043:A37063|8044:9F634F|8045:A35D44|8060:98828C|8061:9D7B88|8062:A2717F|8063:A76675|8064:A3646A|8065:A05D5D|8080:928294|8081:996A90|8082:9A5D8B|8083:9C4E85|8084:A24178|8085:A13769|8100:907695|8101:8F6992|8102:8F5A8F|8103:8F4C8C|8104:8E3B79|8105:8E336D|8120:8D8298|8121:8A7595|8122:886994|8123:885B94|8124:894E85|8125:87467A|8140:837698|8141:7E6A98|8142:795E99|8143:715096|8144:724F83|8145:704A79|8160:838495|8161:797997|8162:666197|8163:5B5498|8164:584990|8165:523E81|8180:7C8897|8181:5E789C|8182:4E6E9F|8183:3B62A1|8184:315995|8185:2B528C|8200:6D889A|8201:5F839C|8202:4C7E9F|8203:3177A3|8204:3F7590|8205:3D6F85|8220:6F8C9A|8221:5E8A9E|8222:4986A1|8223:2B80A1|8224:117993|8225:007287|8240:819098|8241:628E9C|8242:4C8B9B|8243:2A8A9F|8244:427F86|8245:3F7879|8260:728F98|8261:628B95|8262:4D8893|8263:338490|8264:21797C|8265:1C6D6A|8280:7C9797|8281:709795|8282:609A94|8283:499C93|8284:589382|8285:558E77|8300:80968E|8301:78998B|8302:6A9A82|8303:549372|8304:618C68|8305:5F865D|8320:8A928C|8321:80967A|8322:78986E|8323:69935E|8324:75925B|8325:728C4F|8340:8D957D|8341:8B9570|8342:899762|8343:859952|8344:83913E|8345:828D2E|8360:939478|8361:92926B|8362:98955C|8363:A19B4B|8364:9F9146|8365:A28F3D|8380:919085|8381:969077|8382:9B8E68|8383:9D8958|8384:A48244|8385:A47C39|8400:818182|8401:767575|8402:696866|8403:5C5B59|8404:56504A|8405:524942|8420:918B8D|8421:7D797A|8422:746D6E|8423:696060|8424:625550|8425:5F4F49|8440:9A8387|8441:9E7B7D|8442:A27172|8443:AA6767|8444:AC5B53|8445:AD5345|8460:89838D|8461:857784|8462:7F6A7A|8463:775E6E|8464:74535F|8465:714C56|8480:456580|8481:4C607E|8482:355772|8483:1F486B|8484:255682|8485:2C5D8A|8500:707F7C|8501:5E7D75|8502:4B646B|8503:33414C|8504:374E5F|8505:3C566B|8520:78765D|8521:555849|8522:464F45|8523:35413A|8524:3C4C4A|8525:435555|8540:834C4D|8541:6D4547|8542:633238|8543:603447|8544:643E54|8545:604355|8560:7F5649|8561:794A4A|8562:713F44|8563:70433C|8564:784F4E|8565:785556|8580:936D41|8581:845E3B|8582:7E5633|8583:6E4627|8584:6B4930|8585:76553D|8600:5D5A59|8601:504847|8602:423F44|8603:34343E|8604:393F4E|8605:3F485A|8620:78634D|8621:695644|8622:594839|8623:4E443C|8624:443D36|8625:47423D|8640:9A7C38|8641:A3842C|8642:AC8B1A|8643:AC8700|8644:A68C24|8645:A08E35|8660:8D7535|8661:89791D|8662:857D1E|8663:7E810D|8664:838E2C|8665:83913B|8680:7D7847|8681:787A38|8682:6E7F30|8683:658F31|8684:618A3B|8685:648D49|8700:72754D|8701:6A7B46|8702:5A7F44|8703:438240|8704:498853|8705:4E8A5E|8720:56735A|8721:5D7A5B|8722:46785A|8723:2E8661|8724:379277|8725:3D937E|8740:4D6C63|8741:346E61|8742:356F65|8743:007171|8744:007A82|8745:167F8B|8760:2E6D70|8761:006673|8762:355E68|8763:06576F|8764:1A6280|8765:26698A|8780:463F5F|8781:3C4363|8782:3A3C7B|8783:2A3A6E|8784:2F457C|8785:334E8A|8800:5B395F|8801:553B5F|8802:472D60|8803:4E2B60|8804:543873|8805:58417D|8820:86415C|8821:85335F|8822:6A375C|8823:622A65|8824:663775|8825:6A4182|8840:8B4153|8841:8B3354|8842:8D225B|8843:842263|8844:843072|8845:843D7D|8860:9A5051|8861:93434E|8862:95374B|8863:962742|8864:933554|8865:904061|8880:985459|8881:9D475B|8882:A33B5F|8883:AA3E50|8884:A7495E|8885:A24F65|8900:A45B43|8901:B65B49|8902:B85C5C|8903:BB4F51|8904:B75860|8905:B35F6B|8920:A0664E|8921:B35933|8922:B65317|8923:B74E23|8924:B25637|8925:AC5B43|8940:A16837|8941:AC662D|8942:AE5C1C|8943:C16014|8944:BB6428|8945:B76835|8960:966E32|8961:A26827|8962:B37300|8963:BF6D10|8964:AA6526|8965:A36934|9140:F2EECA|9284:FAC9D1|9324:F3C9E4|9344:D1B6E4|9464:9FDDED|9524:AFEADC|9084:ADA79E|9060:F1F0D8|9280:F5E2E2|9320:F2DEE9|9340:E7DCEA|9460:D5EBEE|9520:D7EFE7|9083:CCC8BF|9064:F1F1DE|9285:F2EBE7|9061:F2E9EA|9345:EEE9EA|9062:E6EEEC|9063:E7EFE7|9081:DFDCD4|9043:E8E6DF|9080:E4E2DB|9100:E7E7E0|9101:E3E3DD|9102:D9DBD5|9103:D5D8D2|9082:D2CDC3|9121:F1F0B0|9120:F1EFB7|9141:F2EDC0|9142:E9E4C5|9161:E7DBB9|9143:E3DFC3|9162:E2D9C2|9160:F4E5C0|9180:F3E4CD|9181:F4E3C9|9200:F5E1CC|9201:F5E3CC|9220:F5E0CF|9221:EDD6C4|9184:EFE4CE|9185:EDE1CF|9202:EDDECD|9182:ECDCC8|9183:E5D7C5|9203:E4D5C4|9186:E1D3C4|9224:F2E9DB|9225:F0E6D8|9226:EBE3D7|9222:E6D5C8|9223:E1D3C7|9242:E9D5CD|9243:E1CEC6|9244:F3E9E2|9240:F4E5DE|9260:F5DEDA|9241:F0DDD7|9261:EFD7D4|9262:EAD5D2|9263:E4D1CD|9286:F6DFE0|9281:F2DDDE|9300:F4DDE2|9282:EFDADB|9301:F0DBE1|9321:EDD5E2|9302:E9CED5|9021:F1E7E4|9022:F0E7E9|9023:EAE3EA|9283:E9D8D7|9303:E7D2D6|9322:E9D0DC|9323:E2CCD6|9360:DED8EB|9341:E3D7E6|9342:E0D4E2|9343:DED1E1|9361:DCD3E7|9362:DCD4E5|9363:D1C7D9|9380:DEE1EC|9384:DADFEC|9381:D2D9E8|9382:CDD2E6|9383:D1D5E3|9385:CED5DF|9403:CED9E4|9400:D6E1EC|9401:D5E1ED|9402:D5E0EA|9420:D1E2EC|9421:CEDFE9|9422:CAD9E3|9423:C0D1DA|9424:C3E3E7|9440:C1E0EA|9441:C0E0EC|9442:BEDDE7|9461:BEE2E7|9462:B9DBE0|9443:B9D5DE|9480:C8E9E9|9481:C5E9EA|9500:BEE9E7|9482:C1E3E4|9501:B9E0DD|9483:C6DCDA|9463:BDDADD|9042:E3E8E3|9041:DFECE4|9040:DCEBEC|9044:C9E2E0|9045:C8DEDA|9503:CBDEDA|9504:C6DAD7|9525:E5EFE2|9540:E1F0E5|9541:DFECE2|9521:D5E9E1|9522:D6E6DF|9523:D6E3DC|9502:CDE3E0|9544:E5EFDA|9560:DFEFDB|9561:D7E8D2|9562:D6E2CF|9563:D5DDCE|9542:CDDACD|9543:C7D7C9|9020:EEEEC8|9600:E7EDC8|9601:E5E8CD|9122:E4E2B7|9602:D9DBBD|9603:D9D9C3|9123:DCD9B9|9580:E1EFCE|9581:DEE7CD|9584:DCE1CB|9582:D7DBC8|9583:CDD2BA|9585:D7DBC6|9163:D8CFB9|901:00AADA|902:8DE971|903:FFF36D|904:FFCD8A|905:FF9DA7|906:FF7CD6|907:F469DB|908:00AFDB|909:A9EE8A|910:FDF38A|911:FFD9A4|912:FFACB6|913:FF92DA|914:F57FE0|915:00BCE3|916:B9EFA3|917:F7F4A2|918:FFDFB4|919:FFC0C8|920:FFADE3|921:F8A3E6|808:00B796|809:E3E829|810:FFD635|811:FF8F6C|812:FF5FA2|813:FB48C4|814:8A69D4|922:00C0A3|923:ECF166|924:FFE671|925:FFAD93|926:FF85BD|927:FC76D9|928:997ADB|929:2BC9AF|930:EEF386|931:FFE983|932:FFBBA4|933:FF9BCB|934:FC8DE0|935:AB92E1|936:6DD5C3|937:EFF4A4|938:FCEEA8|939:FFCFBE|940:FFB6D9|941:FCA9E6|942:C0AEE7".split("|").map(x=>{const i=x.lastIndexOf(":");return {n:"PANTONE "+x.slice(0,i)+" C",k:x.slice(0,i).toLowerCase().replace(/\s+/g,""),hex:"#"+x.slice(i+1)}});
+function buildPantone(){
+  let pick=null;
+  const q=$("pmsQ"),res=$("pmsRes"),to=$("pmsTo");
+  q.oninput=()=>{
+    const v=q.value.toLowerCase().replace(/pantone|pms/g,"").replace(/\s+/g,"").replace(/c$/,"");
+    res.innerHTML="";to.style.display="none";pick=null;$("pmsHint").style.display=v?"":"none";
+    if(!v)return;
+    const hits=PMS.filter(p=>p.k===v).concat(PMS.filter(p=>p.k!==v&&p.k.startsWith(v)),PMS.filter(p=>!p.k.startsWith(v)&&p.k.includes(v))).slice(0,8);
+    if(!hits.length){res.innerHTML='<span class="hint">לא נמצא צבע כזה</span>';return}
+    for(const h of hits){const b=document.createElement("button");b.className="it";b.type="button";b.innerHTML=`<i style="background:${h.hex}"></i><span>${h.n.replace("PANTONE ","")}</span>`;b.title=h.n+" · "+h.hex;
+      b.onclick=()=>{pick=h;res.querySelectorAll(".it").forEach(x=>x.classList.toggle("sel",x===b));$("pmsName").textContent=h.n+":";to.style.display="flex"};res.appendChild(b)}
+  };
+  to.querySelectorAll(".chip").forEach(c=>c.onclick=()=>{if(!pick)return;S[c.dataset.t]=pick.hex;S.theme=null;syncUI();render();toast(pick.n+" הוחל")});
 }
 
 // ---------- UI build ----------
@@ -557,12 +606,12 @@ function buildUI(){
   for(const p in PRESETS){const b=document.createElement("button");b.className="chip";b.textContent=p;b.onclick=()=>{S.text={...PRESETS[p],credit:S.text.credit||PRESETS[p].credit};syncUI();render()};$("presets").appendChild(b)}
   $("formats").innerHTML="";
   for(const k in FORMATS){const b=document.createElement("button");b.className="chip";b.dataset.k=k;b.textContent=FORMATS[k].name;b.onclick=()=>{S.fmt=k;syncUI();render()};$("formats").appendChild(b)}
-  $("themes").innerHTML="";
-  for(const t of THEMES){const d=document.createElement("div");d.className="theme";d.dataset.k=t.id;d.style.background=t.bg;d.style.color=t.pri;d.innerHTML=`<span>כותרת</span><small style="color:${t.acc}">03.02 10:00</small><span class="n" style="color:${t.pri}">${t.n}</span>`;d.onclick=()=>{S.theme=t.id;S.bg=t.bg;S.pri=t.pri;S.acc=t.acc;syncUI();render()};$("themes").appendChild(d)}
+  buildThemes();
+  buildPantone();
   const bw=$("blocks");bw.innerHTML="";
   for(const b of BLOCKS){
-    const d=document.createElement("div");d.className="block";
-    d.innerHTML=`<div class="bh"><span>${b.label}</span><span class="tag" data-ft></span></div>
+    const d=document.createElement("div");d.className="block";d.dataset.bk=b.k;
+    d.innerHTML=`<div class="bh"><span>${b.label}${b.k!=="credit"?`<button type="button" class="up" data-up="${b.k}" title="העברה מעל הבלוק הקודם">↑</button>`:""}</span><span class="tag" data-ft></span></div>
       <textarea data-k="${b.k}" rows="${Math.max(1,(S.text[b.k]||"").split("\n").length)}"></textarea>
       <div class="mini"><input type="range" min="${b.k==="credit"?1:1.5}" max="${b.k==="credit"?4:14}" step="0.1" data-s="${b.k}">
       <span></span></div>
@@ -573,6 +622,7 @@ function buildUI(){
   bw.querySelectorAll("textarea").forEach(t=>t.oninput=()=>{S.text[t.dataset.k]=t.value;t.rows=Math.max(1,t.value.split("\n").length);render()});
   bw.querySelectorAll("[data-s]").forEach(r=>r.oninput=()=>{S.bsize[r.dataset.s]=+r.value;render()});
   bw.querySelectorAll(".sw button").forEach(btn=>btn.onclick=()=>{const k=btn.parentNode.dataset.c;S.bcolor[k]=btn.dataset.v;syncUI(true);render()});
+  bw.querySelectorAll("[data-up]").forEach(btn=>btn.onclick=()=>{const o=cleanOrder(S.order);const i=o.indexOf(btn.dataset.up);if(i>0){[o[i-1],o[i]]=[o[i],o[i-1]];S.order=o;syncUI(true);render()}});
   bw.querySelectorAll("[data-cc]").forEach(inp=>inp.oninput=()=>{S.bcolor[inp.dataset.cc]=inp.value.toUpperCase();syncUI(true);render()});
   bw.querySelectorAll("[data-f]").forEach(r=>r.onchange=()=>{S.bfont[r.dataset.f]=r.value;render()});
   const col=(id,key)=>{$(id).oninput=e=>{S[key]=e.target.value.toUpperCase();S.theme=null;syncUI(true);render()}};
@@ -600,7 +650,6 @@ function buildUI(){
   $("imgShade").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.img.shade=b.dataset.v;syncImgUI();render()});
   $("imgBlend").onchange=e=>{S.img.blend=e.target.value;render()};
   $("imgGray").onchange=e=>{S.img.gray=e.target.checked;render()};
-  $("logoMode").onchange=e=>{S.logoMode=e.target.value;render()};
   $("logoColor").onchange=e=>{S.logoColor=e.target.value;render()};
   $("invName").oninput=e=>{S.name=e.target.value;saveDraft()};
   $("author").value=ls.get("hitid-author")||"";
@@ -620,8 +669,9 @@ function syncUI(keepColors){
     const cu=w.querySelector(".cust");if(cu){const col=colorOf(k);cu.classList.toggle("on",!hit);cu.style.setProperty("--c",col);const inp=cu.querySelector("input");if(document.activeElement!==inp&&/^#[0-9a-f]{6}$/i.test(col))inp.value=col.toLowerCase()}});
   document.querySelectorAll("[data-f]").forEach(r=>{r.value=S.bfont[r.dataset.f];r.closest(".block").querySelector("[data-ft]").textContent=FONT_OPTS.find(o=>o[0]===r.value)[1]});
   $("colW").value=S.colW;
+  {const bw=$("blocks");const o=cleanOrder(S.order);S.order=o;[...o,"credit"].forEach((k,i)=>{const el=bw.querySelector(`[data-bk="${k}"]`);if(el){bw.appendChild(el);const u=el.querySelector(".up");if(u)u.style.visibility=i===0?"hidden":""}})}
   syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;
-  $("logoMode").value=S.logoMode;$("logoColor").value=S.logoColor;
+  S.logoMode="tag";$("logoColor").value=S.logoColor;
   $("invName").value=S.name||"";
   $("saveHint").textContent=S.docId?"פתוחה הזמנה שמורה – שמירה תעדכן אותה.":"";
 }
@@ -731,7 +781,7 @@ cv.addEventListener("pointerup",endDrag);cv.addEventListener("pointerleave",()=>
 // ---------- draft ----------
 let draftT=0;
 function saveDraft(){clearTimeout(draftT);draftT=setTimeout(()=>ls.set("hitid-draft",JSON.stringify(S)),400)}
-function loadDraft(){try{const d=JSON.parse(ls.get("hitid-draft")||"null");if(d&&d.text)S=Object.assign(DEFAULT(),d,{img:Object.assign(DEFAULT().img,{shade:"all"},d.img||{})})}catch(e){}}
+function loadDraft(){try{const d=JSON.parse(ls.get("hitid-draft")||"null");if(d&&d.text)S=Object.assign(DEFAULT(),d,{img:Object.assign(DEFAULT().img,{shade:"all"},d.img||{})})}catch(e){}S.logoMode="tag"}
 
 // ---------- export ----------
 function exportCanvas(){
@@ -832,7 +882,7 @@ async function openDoc(d){
   const v=d.data();
   try{
     const st=JSON.parse(v.state);
-    S=Object.assign(DEFAULT(),st,{img:Object.assign(DEFAULT().img,{shade:"all"},st.img||{})});S.docId=d.id;
+    S=Object.assign(DEFAULT(),st,{img:Object.assign(DEFAULT().img,{shade:"all"},st.img||{})});S.docId=d.id;S.logoMode="tag";
     bgImg=null;bgData=null;
     if(v.hasBg){const b=await db.doc("invite_bg/"+d.id).get();const data=b.exists&&b.data().data;if(typeof data==="string"&&data.startsWith("data:image/")){bgData=data;bgImg=await loadImg(data)}}
     syncUI();showTab("edit");render();toast("נפתח לעריכה");
