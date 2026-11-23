@@ -124,6 +124,7 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
 .tabs b{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:currentColor;margin-inline-end:4px;font-size:11px}
 .tabs b{color:inherit}.tabs button b{background:none;border:1.5px solid currentColor}
 @media (max-width:800px){.sgrid{grid-template-columns:1fr}}
+.duos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.duos button{width:46px;height:26px;border-radius:6px;border:2px solid transparent;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)}.duos button.on{border-color:var(--ink)}
 .genbox{width:min(920px,95vw)!important;max-height:92vh;overflow:auto}
 .genhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
 .ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
@@ -260,6 +261,11 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
       <option value="screen">Screen – הבהרה</option>
     </select>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="imgGray"> שחור-לבן</label>
+    <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" id="duoOn"> דואוטון</label>
+    <div id="duoBox" style="display:none">
+      <div class="duos" id="duoPresets"></div>
+      <div class="row" style="margin-top:8px"><div><label style="margin-top:0">צל</label><input type="color" id="duoDark"></div><div><label style="margin-top:0">אור</label><input type="color" id="duoLight"></div></div>
+    </div>
   </details>
 
   <details>
@@ -379,7 +385,7 @@ const DEFAULT=()=>({
   bsize:Object.fromEntries(BLOCKS.map(b=>[b.k,b.size])),
   bcolor:Object.fromEntries(BLOCKS.map(b=>[b.k,b.color])),
   bfont:Object.fromEntries(BLOCKS.map(b=>[b.k,b.font])),
-  img:{zoom:1,px:0,py:0,op:1,dark:0,shade:"text",blend:"source-over",gray:false,area:"full",fit:"cover",rot:0,flip:false},
+  img:{zoom:1,px:0,py:0,op:1,dark:0,shade:"text",blend:"source-over",gray:false,duo:{on:false,dark:"#6E1E00",light:"#F8E2BE"},area:"full",fit:"cover",rot:0,flip:false},
   logoMode:"tag",logoColor:"auto",order:ORDER0.slice(),
   name:"",docId:null
 });
@@ -572,6 +578,25 @@ function imgGeom(W,H){
   const s=fit*I.zoom;const iw=bgImg.width*s,ih=bgImg.height*s;
   return {R,iw,ih,cx:R.x+R.w/2+I.px*R.w,cy:R.y+R.h/2+I.py*R.h};
 }
+// duotone: luminance (auto-levelled) mapped from a shadow colour to a highlight colour; cached per source+colours
+const DUO_PRESETS=[["חום · קרם","#6E1E00","#F8E2BE"],["שחור · צהוב","#000000","#FFF200"],["כחול · תכלת","#0B2A44","#00ADEE"],["סגול · מגנטה","#22062E","#EC008C"],["כחול · לבן","#2771A0","#FFFFFF"],["שחור · תכלת","#000000","#7FD6F7"]];
+function hexRgb(h){const n=parseInt(h.slice(1),16);return [(n>>16)&255,(n>>8)&255,n&255]}
+function duotone(src,dark,light){
+  const key=dark+light;if(src._duo&&src._duo.key===key)return src._duo.c;
+  const sw=src.width,sh=src.height,k=Math.min(1,1800/Math.max(sw,sh));
+  const c=document.createElement("canvas");c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));
+  const x=c.getContext("2d");x.drawImage(src,0,0,c.width,c.height);
+  let id;try{id=x.getImageData(0,0,c.width,c.height)}catch(e){return src}
+  const d=id.data,n=d.length/4,hist=new Uint32Array(256),L=new Uint8Array(n);
+  for(let i=0,j=0;i<d.length;i+=4,j++){const l=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)|0;L[j]=l;hist[l]++}
+  let lo=0,hi=255,acc=0;for(let v=0;v<256;v++){acc+=hist[v];if(acc>n*0.01){lo=v;break}}
+  acc=0;for(let v=255;v>=0;v--){acc+=hist[v];if(acc>n*0.01){hi=v;break}}
+  if(hi-lo<10){lo=0;hi=255}
+  const A=hexRgb(dark),B=hexRgb(light),lut=new Uint8Array(768);
+  for(let v=0;v<256;v++){const t=Math.max(0,Math.min(1,(v-lo)/(hi-lo)));for(let ch=0;ch<3;ch++)lut[v*3+ch]=Math.round(A[ch]+(B[ch]-A[ch])*t)}
+  for(let i=0,j=0;i<d.length;i+=4,j++){const l=L[j]*3;d[i]=lut[l];d[i+1]=lut[l+1];d[i+2]=lut[l+2]}
+  x.putImageData(id,0,0);src._duo={key,c};return c;
+}
 function paint(c,W,H){
   c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation="source-over";c.globalAlpha=1;
   c.fillStyle=S.bg;c.fillRect(0,0,W,H);
@@ -579,9 +604,10 @@ function paint(c,W,H){
     const I=S.img;const G=imgGeom(W,H);const R=G.R;
     c.save();c.beginPath();c.rect(R.x,R.y,R.w,R.h);c.clip();
     c.globalAlpha=I.op;c.globalCompositeOperation=I.blend;
-    if(I.gray)c.filter="grayscale(1)";
+    const duoOn=I.duo&&I.duo.on;
+    if(I.gray&&!duoOn)c.filter="grayscale(1)";
     c.translate(G.cx,G.cy);c.rotate((I.rot||0)*Math.PI/180);if(I.flip)c.scale(-1,1);
-    c.drawImage(bgImg,-G.iw/2,-G.ih/2,G.iw,G.ih);c.restore();
+    c.drawImage(duoOn?duotone(bgImg,I.duo.dark,I.duo.light):bgImg,-G.iw/2,-G.ih/2,G.iw,G.ih);c.restore();
     if(I.dark>0&&I.shade==="all"){c.fillStyle=`rgba(0,0,0,${I.dark})`;c.fillRect(R.x,R.y,R.w,R.h)}
   }
   const L=layout(c,W,H);
@@ -718,6 +744,12 @@ function buildUI(){
   $("imgShade").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{S.img.shade=b.dataset.v;syncImgUI();render()});
   $("imgBlend").onchange=e=>{S.img.blend=e.target.value;render()};
   $("imgGray").onchange=e=>{S.img.gray=e.target.checked;render()};
+  const duo=()=>{if(!S.img.duo)S.img.duo={on:false,dark:"#6E1E00",light:"#F8E2BE"};return S.img.duo};
+  $("duoOn").onchange=e=>{duo().on=e.target.checked;if(e.target.checked&&S.img.blend!=="source-over")S.img.blend="source-over";syncUI(true);render()};
+  $("duoDark").oninput=e=>{duo().dark=e.target.value.toUpperCase();syncDuo();render()};
+  $("duoLight").oninput=e=>{duo().light=e.target.value.toUpperCase();syncDuo();render()};
+  $("duoPresets").innerHTML=DUO_PRESETS.map(([n,a,b])=>`<button type="button" title="${n}" data-a="${a}" data-b="${b}" style="background:linear-gradient(90deg,${a},${b})"></button>`).join("");
+  $("duoPresets").querySelectorAll("button").forEach(b=>b.onclick=()=>{Object.assign(duo(),{on:true,dark:b.dataset.a,light:b.dataset.b});S.img.blend="source-over";syncUI(true);render()});
   $("logoColor").onchange=e=>{S.logoColor=e.target.value;render()};
   $("invName").oninput=e=>{S.name=e.target.value;saveDraft()};
   $("author").value=ls.get("hitid-author")||"";
@@ -740,7 +772,7 @@ function syncUI(keepColors){
   document.querySelectorAll("#blocks .block").forEach(el=>{const o=FONT_OPTS.find(o=>o[0]===S.bfont[el.dataset.bk]);el.querySelector("[data-ft]").textContent=o?o[1]:""});
   $("colW").value=S.colW;
   {const bw=$("blocks");const o=cleanOrder(S.order);S.order=o;[...o,"credit"].forEach((k,i)=>{const el=bw.querySelector(`[data-bk="${k}"]`);if(el){bw.appendChild(el);const u=el.querySelector("[data-up]"),dn=el.querySelector("[data-dn]");if(u)u.style.visibility=i===0?"hidden":"";if(dn)dn.style.visibility=i===o.length-1?"hidden":""}})}
-  syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;
+  syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;syncDuo();
   S.logoMode="tag";$("logoColor").value=S.logoColor;
   $("invName").value=S.name||"";
   $("saveHint").textContent=S.docId?"פתוחה הזמנה שמורה – שמירה תעדכן אותה.":"";
@@ -867,6 +899,8 @@ ed.addEventListener("keydown",e=>{if(e.key==="Escape"){e.preventDefault();ed.blu
 const endDrag=()=>{drag=null;cv.classList.remove("drag")};
 function clampP(v){return Math.max(-1.5,Math.min(1.5,v))}
 cv.addEventListener("wheel",e=>{if(!bgImg)return;e.preventDefault();S.img.zoom=Math.max(0.2,Math.min(4,S.img.zoom*Math.exp(-e.deltaY*0.0015)));syncImgUI();render()},{passive:false});
+function syncDuo(){const d=S.img.duo||{};$("duoOn").checked=!!d.on;$("duoBox").style.display=d.on?"":"none";if(d.dark)$("duoDark").value=d.dark.toLowerCase();if(d.light)$("duoLight").value=d.light.toLowerCase();
+  document.querySelectorAll("#duoPresets button").forEach(b=>b.classList.toggle("on",b.dataset.a===d.dark&&b.dataset.b===d.light))}
 function syncImgUI(){
   const I=S.img;$("imgZoom").value=I.zoom;$("imgRot").value=I.rot||0;$("imgPx").value=I.px;$("imgPy").value=I.py;$("imgFlip").checked=!!I.flip;
   $("vZoom").textContent=Math.round(I.zoom*100)+"%";$("vRot").textContent=(I.rot||0)+"°";
@@ -1116,7 +1150,7 @@ function parseFree(raw){
   P.notes.push(...rest);
   return P;
 }
-function wrapList(s,max){const i=s.indexOf(":");const head=i>0?s.slice(0,i+1):"";const items=(i>0?s.slice(i+1):s).split(/\s*,\s*/).filter(Boolean);
+function wrapList(s,max){const i=s.indexOf(":");const head=i>0?s.slice(0,i+1):"";const items=(i>0?s.slice(i+1):s).split(/\s*,\s*/).map(x=>x.trim()).filter(Boolean);
   const out=[];let cur=head;for(const it of items){const add=(cur&&cur!==head?cur+", ":cur?cur+" ":"")+it;if(cur&&cur!==head&&add.length>max){out.push(cur+",");cur=it}else cur=add}if(cur)out.push(cur);return out.join("\n")}
 function textFromParsed(P,wpl){
   const when=[P.day,P.date,P.time].filter(Boolean).join("\n");
@@ -1126,17 +1160,18 @@ function textFromParsed(P,wpl){
 const VARIANTS=[
   {n:"קלאסי",theme:"white",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
     img:{zoom:1,dark:0.4,shade:"text"},imgCol:{title:"#FFFFFF",details:"#FFFFFF"}},
-  {n:"צהוב · דואוטון",theme:"yellow",wpl:14,col:{intro:"pri",kicker:"pri",title:"pri",when:"pri",details:"pri"},sz:{title:9.5,when:6.5},
-    img:{zoom:1.15,px:-0.1,py:0.05,gray:true,blend:"multiply"}},
+  {n:"דואוטון שחור · צהוב",theme:"yellow",wpl:14,col:{intro:"pri",kicker:"pri",title:"pri",when:"pri",details:"pri"},sz:{title:9.5,when:6.5},
+    img:{zoom:1.15,px:-0.1,py:0.05,duo:{on:true,dark:"#000000",light:"#FFF200"},dark:0.55,shade:"text"},imgCol:{intro:"#FFFFFF",kicker:"#FFF200",title:"#FFFFFF",when:"#FFF200",details:"#FFFFFF"}},
   {n:"שחור · מגנטה",theme:"black",wpl:9,col:{intro:"acc",kicker:"#EC008C",title:"pri",when:"acc",details:"pri"},sz:{when:9},
     img:{zoom:1.35,px:0.15,py:-0.1,dark:0.45,shade:"all"}},
-  {n:"כחול · מונוכרום",theme:"blue",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
-    img:{zoom:1,gray:true,blend:"multiply"},imgCol:{title:"#FFFFFF",details:"#FFFFFF"}},
-  {n:"אפור · מגנטה",theme:"grey",wpl:14,col:{intro:"pri",kicker:"#EC008C",title:"pri",when:"#EC008C",details:"pri"},sz:{title:9.5},
-    img:{zoom:1.2,px:-0.05,gray:true,dark:0.35,shade:"all"},imgCol:{intro:"#FFFFFF",title:"#FFFFFF",details:"#FFFFFF"}},
+  {n:"דואוטון כחול · תכלת",theme:"blue",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
+    img:{zoom:1,duo:{on:true,dark:"#0B2A44",light:"#00ADEE"}},imgCol:{title:"#FFFFFF",details:"#FFFFFF",intro:"#FFFFFF",kicker:"#FFFFFF",when:"#FFFFFF"}},
+  {n:"דואוטון חום · קרם",theme:"white",wpl:14,col:{intro:"pri",kicker:"pri",title:"pri",when:"pri",details:"pri"},sz:{title:9.5},
+    img:{zoom:1.2,px:-0.05,duo:{on:true,dark:"#6E1E00",light:"#F8E2BE"}},imgCol:{intro:"#FFFFFF",kicker:"#FFFFFF",title:"#FFFFFF",when:"#FFF200",details:"#FFFFFF"}},
   {n:"כהה · צהוב",theme:"dark",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{kicker:6,when:7},
     img:{zoom:1.1,dark:0.4,shade:"text"}}
 ];
+VARIANTS.splice(1,0,VARIANTS.splice(4,1)[0]);
 function buildVariant(P,v){
   const th=THEMES.find(x=>x.id===v.theme);
   const N=JSON.parse(JSON.stringify(S));
@@ -1145,7 +1180,7 @@ function buildVariant(P,v){
   N.bsize=Object.fromEntries(BLOCKS.map(b=>[b.k,v.sz[b.k]||b.size]));
   N.bcolor=Object.fromEntries(BLOCKS.map(b=>[b.k,v.col[b.k]||b.color]));
   N.bfont=Object.fromEntries(BLOCKS.map(b=>[b.k,b.font]));
-  N.img=Object.assign(DEFAULT().img,{dark:0,shade:"text"},v.img||{},{area:"full",fit:"cover"});
+  N.img=Object.assign(DEFAULT().img,{dark:0,shade:"text"},JSON.parse(JSON.stringify(v.img||{})),{area:"full",fit:"cover"});
   if(bgImg&&v.imgCol)Object.assign(N.bcolor,v.imgCol);
   N.name=(P.kicker?P.kicker+" · ":"")+(P.title||"").slice(0,50);
   return N;
