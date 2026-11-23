@@ -308,8 +308,9 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
       <button class="btn sec" id="jpgBtn">JPG</button>
       <button class="btn sec" id="pdfBtn">PDF להדפסה</button>
       <button class="btn" id="vidBtn" style="display:none">הורדת וידאו</button>
+      <button class="btn" id="gifBtn" style="display:none">הורדת GIF</button>
     </div>
-    <p class="hint" id="animHint" style="display:none">הרקע מונפש (GIF). התנועה נשמרת רק בווידאו; PNG, JPG ו-PDF שומרים את הפריים שרואים כרגע.</p>
+    <p class="hint" id="animHint" style="display:none">הרקע מונפש (GIF). התנועה נשמרת בהורדת GIF או וידאו; PNG, JPG ו-PDF שומרים את הפריים שרואים כרגע.</p>
     <p class="hint" id="saveHint"></p>
     <div class="btns"><button class="btn sec" id="newBtn">הזמנה חדשה</button></div>
   </details>
@@ -822,7 +823,7 @@ function animTick(){
   if(!anim.paused){const c=frameAt(performance.now()-anim.t0);if(c!==bgImg){bgImg=c;render()}}
   requestAnimationFrame(animTick);
 }
-function updateAnimUI(){$("vidBtn").style.display=anim?"":"none";$("animHint").style.display=anim?"":"none"}
+function updateAnimUI(){$("vidBtn").style.display=anim?"":"none";$("gifBtn").style.display=anim?"":"none";$("animHint").style.display=anim?"":"none"}
 async function loadBgFile(f){
   if(!f||!/^image\//.test(f.type)){toast("אפשר לגרור לכאן קובץ תמונה בלבד");return false}
   const url=URL.createObjectURL(f);
@@ -949,6 +950,32 @@ function renderInto(c){
   S=JSON.parse(JSON.stringify(S));FORMATS.__tmp={...F,w:W,h:H};S._real=S.fmt;S.fmt="__tmp";
   try{paint(c.getContext("2d"),W,H)}finally{S=saved;delete FORMATS.__tmp}
 }
+// GIF export of an animated background – one output frame per source frame, same timing
+let gifenc=null;
+$("gifBtn").onclick=async()=>{
+  if(!anim)return;
+  const btn=$("gifBtn");
+  try{if(!gifenc)gifenc=await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/dist/gifenc.esm.js")}catch(e){toast("לא הצלחתי לטעון את מקודד ה-GIF – בדקו חיבור לאינטרנט");return}
+  const {GIFEncoder,quantize,applyPalette}=gifenc;
+  const F=FORMATS[S.fmt];const k=Math.min(1,800/Math.max(F.w,F.h));
+  const c=document.createElement("canvas");c.width=Math.round(F.w*k);c.height=Math.round(F.h*k);
+  const x=c.getContext("2d",{willReadFrequently:true});
+  btn.disabled=true;anim.paused=true;const keep=bgImg;
+  try{
+    const enc=GIFEncoder();const n=anim.frames.length;
+    for(let i=0;i<n;i++){
+      const fr=anim.frames[i];bgImg=fr.c;renderInto(c);
+      const data=x.getImageData(0,0,c.width,c.height).data;
+      const pal=quantize(data,256);const idx=applyPalette(data,pal);
+      enc.writeFrame(idx,c.width,c.height,{palette:pal,delay:Math.max(20,fr.d||100),repeat:0});
+      btn.textContent=`מכין GIF… ${Math.round((i+1)/n*100)}%`;
+      await new Promise(r=>setTimeout(r,0));
+    }
+    enc.finish();
+    saveFile(fileBase()+".gif",new Blob([enc.bytes()],{type:"image/gif"}));
+  }catch(e){toast("ייצוא ה-GIF נכשל")}
+  finally{bgImg=keep;anim.paused=false;btn.disabled=false;btn.textContent="הורדת GIF";render()}
+};
 // video export of an animated background – real-time recording of the canvas
 $("vidBtn").onclick=async()=>{
   if(!anim)return;
