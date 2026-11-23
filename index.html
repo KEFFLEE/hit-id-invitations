@@ -104,6 +104,13 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
 .empty{color:var(--muted);padding:40px 0}
 .fontrow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
 .ok{color:#0a7d32;font-weight:700}.no{color:#b25b00;font-weight:700}
+.genbox{width:min(920px,95vw)!important;max-height:92vh;overflow:auto}
+.genhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.ggrid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:8px}
+.gcard{border:2px solid transparent;background:#f7f5f4;border-radius:12px;padding:10px;cursor:pointer;display:flex;flex-direction:column;gap:8px;align-items:center;font:700 14px "HIT Simpler Bold","Heebo";transition:.15s}
+.gcard:hover{border-color:var(--ink);transform:translateY(-2px)}
+.gcard canvas{width:100%;height:auto;box-shadow:0 4px 16px rgba(0,0,0,.12);background:#fff}
+@media (max-width:700px){.ggrid{grid-template-columns:1fr}}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:8}
 .modal .box{background:#fff;border-radius:14px;padding:22px 24px;width:min(420px,92vw)}
 .modal h3{margin:0 0 8px;font:900 18px "HIT Simpler Black","Heebo"}
@@ -122,6 +129,7 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
 <aside>
   <details open>
     <summary>התחלה מהירה</summary>
+    <button class="btn y" id="genOpen" type="button" style="width:100%;margin-bottom:12px">✦ מטקסט חופשי ל-3 עיצובים</button>
     <div class="chips" id="presets"></div>
     <p class="hint">בחירת תבנית ממלאת טקסט לדוגמה. אפשר לערוך הכול.</p>
   </details>
@@ -166,10 +174,10 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
   <details id="imgDetails">
     <summary>תמונת רקע</summary>
     <div class="btns" style="margin-top:0">
-      <label class="btn sec" style="margin:0;display:inline-block">בחירת תמונה<input type="file" id="imgIn" accept="image/*" hidden></label>
+      <label class="btn sec" style="margin:0;display:inline-block">בחירת תמונה / GIF<input type="file" id="imgIn" accept="image/*" hidden></label>
       <button class="btn sec" id="imgClear">הסרה</button>
     </div>
-    <p class="hint">גוררים את התמונה על ההזמנה כדי למקם אותה · גלגלת העכבר מגדילה ומקטינה.</p>
+    <p class="hint">אפשר גם GIF מונפש – הרקע זז בתצוגה ונשמר כווידאו MP4. גוררים את התמונה על ההזמנה כדי למקם אותה · גלגלת העכבר מגדילה ומקטינה.</p>
     <label>אזור הדימוי</label>
     <div class="chips" id="imgArea"></div>
     <label>התאמה לאזור</label>
@@ -257,6 +265,17 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
   <div class="grid" id="grid"></div>
 </section>
 
+<div class="modal" id="gen"><div class="box genbox">
+  <div class="genhead"><h3>יצירה מטקסט חופשי</h3><button class="btn sec" id="genClose" type="button">סגירה</button></div>
+  <p class="hint" style="margin-top:0">מדביקים את פרטי האירוע כמו שהם – מייל, הודעת וואטסאפ או כמה שורות. הכלי מזהה שנה, כותרת, יום, תאריך, שעה, מיקום ומנחים, ומציע 3 עיצובים.</p>
+  <textarea id="genText" rows="6" placeholder="לדוגמה: הגשת סטודיו מתכת לשנה ב' ביום שלישי 03.02 בין 10:00-14:00, כיתות 300+301 (קומה 3). מנחים: ערמון איילון, אייבי דניזל"></textarea>
+  <div class="btns"><button class="btn" id="genGo" type="button">יצירת 3 עיצובים</button></div>
+  <div id="genStep2" style="display:none">
+    <p class="hint" id="genMiss"></p>
+    <div class="ggrid" id="genGrid"></div>
+    <div class="btns" style="justify-content:center"><button class="btn sec" id="genMore" type="button">3 עיצובים אחרים</button></div>
+  </div>
+</div></div>
 <div class="modal" id="modal"><div class="box"><h3 id="mT"></h3><p id="mB"></p><div class="btns" id="mA"></div></div></div>
 <div class="toast" id="toast"></div>
 
@@ -1016,6 +1035,96 @@ async function initCaps(){
     $("saveBtn").title="הגלריה זמינה כשהכלי פתוח ב-claude.ai";
   }
 }
+
+// ---------- free text → 3 designs ----------
+const DAYS="ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת";
+const FILL=/^(?:ו?ב|ו?ל|ו?ה|של|את|עם|על|ביום|בשעה|בשעות|בין|עד|מ-?|ו|-|–|—|:|,|\.|!|\?|הזה|הקרוב|נא|אנא|כולם|אתכם|מוזמנים|מוזמנות|מוזמנים\/ות|מזמינה|מזמינים|להגיע)$/;
+function trimFill(s){let w=s.split(/\s+/).filter(Boolean);while(w.length&&FILL.test(w[0]))w.shift();while(w.length&&FILL.test(w[w.length-1]))w.pop();return w.join(" ").replace(/^[\s,.:;–—-]+|[\s,;:–—-]+$/g,"")}
+function wrapWords(s,max){const w=s.split(/\s+/).filter(Boolean);const out=[];let cur="";for(const x of w){if(cur&&(cur+" "+x).length>max){out.push(cur);cur=x}else cur=cur?cur+" "+x:x}if(cur)out.push(cur);return out.join("\n")}
+function parseFree(raw){
+  let t="\n"+raw.replace(/\r/g,"").replace(/[ \t ]+/g," ").split("\n").map(s=>s.trim()).join("\n")+"\n";
+  const take=(re)=>{const m=t.match(re);if(m)t=t.replace(m[0]," ");return m};
+  const P={kicker:"",title:"",day:"",date:"",time:"",place:"",people:"",notes:[]};
+  take(/(?:ה)?מחלקה\s+לעיצוב\s+תעשייתי(?:\s+(?:ב-?HIT|ב?מכון הטכנולוגי(?: חולון)?|HIT))?(?:\s+(?:מזמינה|מזמינים))?(?:\s+(?:אתכם|אתכן|את כולם))?\s*:?/);
+  let m=take(new RegExp("(?:ב)?יום\\s+(?:ה)?("+DAYS+")(?=[\\s,.]|$)"));if(m)P.day="יום "+m[1];
+  else{m=take(/(?:ב)?יום\s+([אבגדהו])['׳]/);if(m)P.day="יום "+["ראשון","שני","שלישי","רביעי","חמישי","שישי"]["אבגדהו".indexOf(m[1])]}
+  m=take(/(?:בין\s+(?:השעות\s+)?|בשעות\s+|מ-?\s*)?(\d{1,2}[:.]\d{2})\s*(?:-|–|—|עד|ועד)\s*(?:ה?שעה\s+)?(\d{1,2}[:.]\d{2})/);
+  const hm=s=>{const [h,mm]=s.replace(".",":").split(":");return h.padStart(2,"0")+":"+mm};
+  if(m)P.time=hm(m[1])+" - "+hm(m[2]);
+  else{m=take(/(?:בשעה\s+|ב-?\s*)?(\d{1,2}:\d{2})/);if(m)P.time=hm(m[1])}
+  m=take(/(?:ב-?|בתאריך\s+)?(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?(?![\d:])/);
+  if(m)P.date=m[1].padStart(2,"0")+"."+m[2].padStart(2,"0");
+  // quoted name → title
+  m=take(/["״“”]([^"״“”\n]{2,60})["״“”]/);if(m)P.title=m[1].trim();
+  m=take(/(?:^|[\s,.(])(?:ל|ב|ו|של|עבור)?((?:שנה|שנים)\s*[אבגד]['׳"]?(?:\s*[-–+ו]\s*[אבגד]['׳"]?)?|תואר שני|הרצאת אורח|הרצאה|ערב פתוח|יום פתוח|סדנה|סדנת|כנס|טקס|פתיחת תערוכה|פתיחת התערוכה|תערוכה|תערוכת)(?=[\s,.:)]|$)/);
+  if(m)P.kicker=m[1].replace(/['׳"]/g,"").replace(/התערוכה/,"תערוכה").trim();
+  m=take(/(?:^|[\s,.(])(מנחים|מנחות|מנחה|מרצים|מרצות|מרצה|בהנחיית|בהשתתפות|משתתפים|משתתפות|בוחנים|צוות|מציגים|מציגות|אוצרת|אוצר|אוצרות)\s*:?\s*([^\n.]+)/);
+  if(m)P.people=m[1]+": "+m[2].trim().replace(/\s*,\s*/g,", ").replace(/[,.\s]+$/,"");
+  m=take(/(?:^|[\s,(])ב?((?:כיתות|כיתה|אולם|חדר|חדרים|קומה|בניין|לובי|גלריה|גלריית|סטודיו(?=\s*\d)|מעבדה|מעבדת|אודיטוריום|ספרייה|ספריית)[^\n.]*)/);
+  if(m)P.place=m[1].trim().replace(/[,\s]+$/,"").replace(/^(כיתות|כיתה)\s+(?=\d)/,"$1: ");
+  t=t.split("\n").map(l=>l.replace(/^(?:היי|הי|שלום|בוקר טוב|ערב טוב|חברים|חברות|סטודנטים|סטודנטיות)(?:\s+(?:לכולם|לכולן|יקרים|יקרות|וחברות))?[\s,!:]*/,"")).join("\n");
+  // notes = lines with practical info
+  t=t.split(/\n|\.\s+/).map(line=>{if(/כיבוד|הכניסה|חופשי|הרשמה|להביא|לבוא|יש ל|נא ל|לפרטים|חניה|בתיאום/.test(line)){P.notes.push(trimFill(line));return ""}return line}).join("\n");
+  // remaining → title (first meaningful chunk) + extra
+  const rest=t.split(/\n|[.!?](?:\s+|$)/).map(trimFill).filter(s=>s&&s.length>1&&/[\u0590-\u05FFA-Za-z]/.test(s));
+  if(!P.title)P.title=rest.shift()||"";
+  if(!P.title&&P.kicker){P.title=P.kicker;P.kicker=""}
+  if(P.title.split(/\s+/).length>7){const w=P.title.split(/\s+/);P.title=w.slice(0,7).join(" ");rest.unshift(w.slice(7).join(" "))}
+  P.notes.push(...rest);
+  return P;
+}
+function textFromParsed(P,wpl){
+  const when=[P.day,P.date,P.time].filter(Boolean).join("\n");
+  const det=[P.place&&wrapWords(P.place,26),P.people&&wrapWords(P.people,26),...P.notes.map(n=>wrapWords(n,26))].filter(Boolean).join("\n");
+  return {intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:P.kicker,title:(P.title||"שם האירוע").split(/\s+[-–—]\s+/).map(x=>wrapWords(x,wpl)).join("\n"),when,details:det,credit:S.text.credit||""};
+}
+const VARIANTS=[
+  {n:"קלאסי · לבן",theme:"white",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{}},
+  {n:"צהוב מותג",theme:"yellow",wpl:14,col:{intro:"pri",kicker:"pri",title:"pri",when:"pri",details:"pri"},sz:{title:9.5,when:6.5}},
+  {n:"שחור · מגנטה",theme:"black",wpl:9,col:{intro:"acc",kicker:"#EC008C",title:"pri",when:"acc",details:"pri"},sz:{when:9}},
+  {n:"כחול",theme:"blue",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{}},
+  {n:"אפור · מגנטה",theme:"grey",wpl:14,col:{intro:"pri",kicker:"#EC008C",title:"pri",when:"#EC008C",details:"pri"},sz:{title:9.5}},
+  {n:"כהה · צהוב",theme:"dark",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{kicker:6,when:7}}
+];
+function buildVariant(P,v){
+  const th=THEMES.find(x=>x.id===v.theme);
+  const N=JSON.parse(JSON.stringify(S));
+  Object.assign(N,{theme:th.id,bg:th.bg,pri:th.pri,acc:th.acc,order:ORDER0.slice(),docId:null});
+  N.text=textFromParsed(P,v.wpl);
+  N.bsize=Object.fromEntries(BLOCKS.map(b=>[b.k,v.sz[b.k]||b.size]));
+  N.bcolor=Object.fromEntries(BLOCKS.map(b=>[b.k,v.col[b.k]||b.color]));
+  N.bfont=Object.fromEntries(BLOCKS.map(b=>[b.k,b.font]));
+  if(bgImg&&lum(th.bg)<0.5&&!N.img.dark){N.img.dark=0.35}
+  if(!N.name)N.name=(P.kicker?P.kicker+" · ":"")+(P.title||"").slice(0,50);
+  return N;
+}
+let genP=null,genPage=0;
+function genRender(){
+  const g=$("genGrid");g.innerHTML="";
+  const F=FORMATS[S.fmt];const w=260,h=Math.round(w*F.h/F.w);
+  const list=[0,1,2].map(i=>VARIANTS[(genPage*3+i)%VARIANTS.length]);
+  for(const v of list){
+    const N=buildVariant(genP,v);
+    const c=document.createElement("canvas");c.width=w*2;c.height=h*2;
+    const saved=S;S=N;try{renderInto(c)}finally{S=saved}
+    const card=document.createElement("button");card.type="button";card.className="gcard";
+    card.appendChild(c);const l=document.createElement("span");l.textContent=v.n;card.appendChild(l);
+    card.onclick=()=>{S=N;syncUI();render();$("gen").style.display="none";toast("העיצוב נבחר – אפשר להמשיך לערוך")};
+    g.appendChild(card);
+  }
+  $("genStep2").style.display="";
+}
+$("genOpen").onclick=()=>{$("gen").style.display="flex";$("genStep2").style.display="none";setTimeout(()=>$("genText").focus(),50)};
+$("genClose").onclick=()=>{$("gen").style.display="none"};
+$("gen").addEventListener("click",e=>{if(e.target.id==="gen")$("gen").style.display="none"});
+$("genGo").onclick=()=>{
+  const raw=$("genText").value.trim();
+  if(!raw){toast("הדביקו קודם את פרטי האירוע");return}
+  genP=parseFree(raw);genPage=0;genRender();
+  const miss=[!genP.date&&"תאריך",!genP.time&&"שעה",!genP.place&&"מיקום"].filter(Boolean);
+  $("genMiss").textContent=miss.length?"לא זוהו: "+miss.join(", ")+" – אפשר להשלים אחרי הבחירה.":"";
+};
+$("genMore").onclick=()=>{genPage++;genRender()};
 
 // ---------- boot ----------
 (async()=>{
