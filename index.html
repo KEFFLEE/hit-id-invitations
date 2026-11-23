@@ -809,7 +809,8 @@ async function decodeGif(buf){
 function frameAt(ms){const a=anim;const t=ms%a.total;let i=a.frames.length-1;for(let j=0;j<a.frames.length;j++){if(a.frames[j].t+a.frames[j].d>t){i=j;break}}return a.frames[i].c}
 function animTick(){
   if(!anim)return;
-  if(!anim.paused){const c=frameAt(performance.now()-anim.t0);if(c!==bgImg){bgImg=c;render()}}
+  if(!anim.paused){const c=frameAt(performance.now()-anim.t0);if(c!==bgImg){bgImg=c;
+    if($("start").style.display!=="none")animStart();else render()}}
   requestAnimationFrame(animTick);
 }
 function updateAnimUI(){$("vidBtn").style.display=anim?"":"none";$("gifBtn").style.display=anim?"":"none";$("animHint").style.display=anim?"":"none"}
@@ -1211,15 +1212,22 @@ function buildVariant(P,v){
   N.name=(P.kicker?P.kicker+" · ":"")+(P.title||"").slice(0,50);
   return N;
 }
-let genP=null,genPage=0;
+let genP=null,genPage=0,genCards=[];
+// on the start screen an animated GIF keeps playing in the preview and in the 3 proposals
+function animStart(){
+  const pv=$("sPrev");if(bgImg&&pv.style.display===""){const x=pv.getContext("2d");x.clearRect(0,0,pv.width,pv.height);x.drawImage(bgImg,0,0,pv.width,pv.height)}
+  if($("genStep2").style.display==="none")return;
+  const saved=S;try{for(const g of genCards){S=g.N;renderInto(g.c)}}finally{S=saved}
+}
 function genRender(){
-  const g=$("genGrid");g.innerHTML="";
+  const g=$("genGrid");g.innerHTML="";genCards=[];
   const F=FORMATS[S.fmt];const w=280,h=Math.round(w*F.h/F.w);
   const list=[0,1,2].map(i=>VARIANTS[(genPage*3+i)%VARIANTS.length]);
   for(const v of list){
     const N=buildVariant(genP,v);
     const c=document.createElement("canvas");c.width=w*2;c.height=h*2;
     const saved=S;S=N;try{renderInto(c)}finally{S=saved}
+    genCards.push({c,N});
     const card=document.createElement("button");card.type="button";card.className="gcard";
     card.appendChild(c);const l=document.createElement("span");l.textContent=v.n;card.appendChild(l);
     card.onclick=()=>{S=N;syncUI();showTab("edit");toast("העיצוב נבחר – אפשר להמשיך לערוך")};
