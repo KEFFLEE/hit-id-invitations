@@ -1124,18 +1124,18 @@ function textFromParsed(P,wpl){
   return {intro:"המחלקה לעיצוב\nתעשייתי מזמינה:",kicker:P.kicker,title:(P.title||"שם האירוע").split(/\s+[-–—]\s+/).map(x=>wrapWords(x,wpl)).join("\n"),when,details:det,credit:S.text.credit||""};
 }
 const VARIANTS=[
-  {n:"קלאסי · לבן",theme:"white",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
-    img:{area:"left50",fit:"cover",zoom:1.05,px:0,py:0},colW:52},
+  {n:"קלאסי",theme:"white",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
+    img:{zoom:1,dark:0.4,shade:"text"},imgCol:{title:"#FFFFFF",details:"#FFFFFF"}},
   {n:"צהוב · דואוטון",theme:"yellow",wpl:14,col:{intro:"pri",kicker:"pri",title:"pri",when:"pri",details:"pri"},sz:{title:9.5,when:6.5},
-    img:{area:"full",fit:"cover",zoom:1.15,px:-0.1,py:0.05,gray:true,blend:"multiply"}},
+    img:{zoom:1.15,px:-0.1,py:0.05,gray:true,blend:"multiply"}},
   {n:"שחור · מגנטה",theme:"black",wpl:9,col:{intro:"acc",kicker:"#EC008C",title:"pri",when:"acc",details:"pri"},sz:{when:9},
-    img:{area:"full",fit:"cover",zoom:1.35,px:0.15,py:-0.1,dark:0.45,shade:"all"}},
+    img:{zoom:1.35,px:0.15,py:-0.1,dark:0.45,shade:"all"}},
   {n:"כחול · מונוכרום",theme:"blue",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{},
-    img:{area:"full",fit:"cover",zoom:1,gray:true,blend:"multiply"}},
+    img:{zoom:1,gray:true,blend:"multiply"},imgCol:{title:"#FFFFFF",details:"#FFFFFF"}},
   {n:"אפור · מגנטה",theme:"grey",wpl:14,col:{intro:"pri",kicker:"#EC008C",title:"pri",when:"#EC008C",details:"pri"},sz:{title:9.5},
-    img:{area:"left60",fit:"cover",zoom:1.2,px:-0.05,gray:true},colW:44},
+    img:{zoom:1.2,px:-0.05,gray:true,dark:0.35,shade:"all"},imgCol:{intro:"#FFFFFF",title:"#FFFFFF",details:"#FFFFFF"}},
   {n:"כהה · צהוב",theme:"dark",wpl:9,col:{intro:"acc",kicker:"acc",title:"pri",when:"acc",details:"pri"},sz:{kicker:6,when:7},
-    img:{area:"full",fit:"cover",zoom:1.1,dark:0.4,shade:"text"}}
+    img:{zoom:1.1,dark:0.4,shade:"text"}}
 ];
 function buildVariant(P,v){
   const th=THEMES.find(x=>x.id===v.theme);
@@ -1145,8 +1145,8 @@ function buildVariant(P,v){
   N.bsize=Object.fromEntries(BLOCKS.map(b=>[b.k,v.sz[b.k]||b.size]));
   N.bcolor=Object.fromEntries(BLOCKS.map(b=>[b.k,v.col[b.k]||b.color]));
   N.bfont=Object.fromEntries(BLOCKS.map(b=>[b.k,b.font]));
-  N.img=Object.assign(DEFAULT().img,{dark:0,shade:"text"},v.img||{});
-  if(bgImg&&v.colW)N.colW=v.colW;
+  N.img=Object.assign(DEFAULT().img,{dark:0,shade:"text"},v.img||{},{area:"full",fit:"cover"});
+  if(bgImg&&v.imgCol)Object.assign(N.bcolor,v.imgCol);
   N.name=(P.kicker?P.kicker+" · ":"")+(P.title||"").slice(0,50);
   return N;
 }
