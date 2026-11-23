@@ -992,7 +992,11 @@ $("vidBtn").onclick=async()=>{
   saveFile(fileBase()+(mp4?".mp4":".webm"),new Blob(chunks,{type:type.split(";")[0]}));
   if(!mp4)toast("נשמר כ-WebM – הדפדפן הזה לא מייצא MP4");
 };
-function fileBase(){return (S.name||"הזמנה").replace(/[\\/:*?"<>|]/g,"").trim()||"הזמנה"}
+function fileBase(){
+  const one=t=>(t||"").split("\n").map(x=>x.trim()).filter(Boolean).join(" ");
+  const n=[one(S.text&&S.text.kicker),one(S.text&&S.text.title)].filter(Boolean).join(" ")||S.name||"הזמנה";
+  return n.replace(/[\\/:*?"<>|]/g,"").replace(/\s+/g," ").trim().slice(0,120)||"הזמנה";
+}
 let downloads=null;
 async function saveFile(name,blob){
   if(!downloads){
