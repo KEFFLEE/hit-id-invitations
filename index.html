@@ -275,17 +275,6 @@ input[type=color]{width:38px;height:30px;border:1px solid var(--line);border-rad
     </div>
   </details>
 
-  <details>
-    <summary>לוגו</summary>
-    <p class="hint" style="margin-top:0">הלוגו מופיע תמיד עם שורת ההגדרה.</p>
-    <label>צבע הלוגו</label>
-    <select id="logoColor">
-      <option value="auto">אוטומטי לפי הרקע</option>
-      <option value="#000000">שחור</option>
-      <option value="#FFFFFF">לבן</option>
-    </select>
-  </details>
-
   <details style="display:none">
     <summary>פונטים</summary>
     <p class="hint">Sunday ו-Simpler Pro מוטמעים בכלי – אין צורך להתקין כלום. אפשר לטעון קבצים חלופיים אם יש גרסה חדשה.</p>
@@ -632,7 +621,7 @@ function paint(c,W,H){
   }
   const lb=logoBox(W,H,L.M);
   if(lb){
-    let col=S.logoColor;
+    let col="auto";
     if(col==="auto"){
       let l=lum(S.bg);
       if(bgImg){ // sample canvas where logo sits
@@ -758,7 +747,6 @@ function buildUI(){
   $("duoLight").oninput=e=>{duo().light=e.target.value.toUpperCase();syncDuo();render()};
   $("duoPresets").innerHTML=DUO_PRESETS.map(([n,a,b])=>`<button type="button" title="${n}" data-a="${a}" data-b="${b}" style="background:linear-gradient(90deg,${a},${b})"></button>`).join("");
   $("duoPresets").querySelectorAll("button").forEach(b=>b.onclick=()=>{Object.assign(duo(),{on:true,dark:b.dataset.a,light:b.dataset.b});S.img.blend="source-over";syncUI(true);render()});
-  $("logoColor").onchange=e=>{S.logoColor=e.target.value;render()};
   $("invName").oninput=e=>{S.name=e.target.value;saveDraft()};
   $("author").value=ls.get("hitid-author")||"";
   $("author").oninput=e=>ls.set("hitid-author",e.target.value);
@@ -781,7 +769,7 @@ function syncUI(keepColors){
   $("colW").value=S.colW;
   {const bw=$("blocks");const o=cleanOrder(S.order);S.order=o;[...o,"credit"].forEach((k,i)=>{const el=bw.querySelector(`[data-bk="${k}"]`);if(el){bw.appendChild(el);const u=el.querySelector("[data-up]"),dn=el.querySelector("[data-dn]");if(u)u.style.visibility=i===0?"hidden":"";if(dn)dn.style.visibility=i===o.length-1?"hidden":""}})}
   syncImgUI();$("imgOp").value=S.img.op;$("imgDark").value=S.img.dark;$("imgBlend").value=S.img.blend;$("imgGray").checked=S.img.gray;syncDuo();
-  S.logoMode="tag";$("logoColor").value=S.logoColor;
+  S.logoMode="tag";S.logoColor="auto";
   $("invName").value=S.name||"";
   $("saveHint").textContent=S.docId?"פתוחה הזמנה שמורה – שמירה תעדכן אותה.":"";
 }
